@@ -22,7 +22,7 @@ xskills/
 ├── marketplace.json      # Marketplace manifest (version must match plugin.json)
 ├── SKILLS.md             # Skill registry: one file classifying all skills (passive/active)
 ├── skills/
-│   ├── x-code-clean/     # passive — comment cleanup + style checkers
+│   ├── x-code-clean/     # active — comment cleanup + style checkers (explicit invocation only)
 │   │   ├── SKILL.md
 │   │   └── scripts/
 │   │       ├── extract_comments.py
@@ -40,8 +40,8 @@ xskills/
 
 | name | type | description |
 | --- | --- | --- |
-| x-code-clean | passive | Review and clean up code comments and code-style violations (e.g. imports not at module top level) in files or a git commit range, any language; report-then-confirm workflow |
-| x-skills | active | Workbench: list the skills belonging to xskills with a short description of each |
+| x-code-clean | active | Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments"); never auto-triggered. Review and clean up code comments and code-style violations (e.g. imports not at module top level) in files or a git commit range, any language; report-then-confirm workflow |
+| x-skills | active | Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-skills", "list my skills"); never auto-triggered. Workbench: list the skills belonging to xskills with a short description of each |
 
 ## Development Process
 
@@ -64,6 +64,7 @@ to release (version discipline, changelog, commit style).
 
 | Version | Date | What changed |
 | --- | --- | --- |
+| v0.1.1 | 2026-08-13 | x-code-clean reclassified from passive to active (explicit invocation only, Explicit-only: description prefix); registry/README/t04 updated accordingly |
 | v0.1.0 | 2026-08-13 | Initial release: skill classification system (passive/active, single registry file SKILLS.md), x-code-clean skill (comment cleanup + no-inner-import checker), x-skills workbench skill, plugin + marketplace manifests, verify-release gate + self-test suite |
 
 ## AGENTSPACE

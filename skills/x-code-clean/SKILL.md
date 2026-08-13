@@ -1,14 +1,17 @@
 ---
 name: x-code-clean
-description: Review and clean up code comments (both `#` and `"""docstrings"""`) and code-style violations (e.g. imports not at module top level) in files or a git commit range, in any language. Removes feedback-driven "why not written some other way" explanations, trims redundant/over-explanatory prose, keeps only non-obvious what/why, and checks import placement. Trigger whenever the user asks to clean up/review/improve comments or docstrings, check import placement/standards (e.g. --no-inner-import, "imports must be at the top"), "review all comments", "trim comments", "clean up docstrings", or reviews comments/standards in commits starting from some point — even if they don't say "skill".
+description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "review comments", "trim comments"); never auto-triggered. When invoked, review and clean up code comments (both `#` and `"""docstrings"""`) and code-style violations (e.g. imports not at module top level) in files or a git commit range, in any language. Removes feedback-driven "why not written some other way" explanations, trims redundant/over-explanatory prose, keeps only non-obvious what/why, and checks import placement.
 ---
 
 # Code Cleanup
 
-Review every comment in scope and improve it: delete the ones that don't
-carry information, trim the ones that over-explain, keep the ones that state
-non-obvious facts. Run the requested style checkers on the same scope.
-Output a per-item report first; only edit after the user confirms.
+This is an **active** skill: it runs only when the user explicitly invokes
+it (by name or keywords such as "clean up comments" / "trim comments");
+never auto-trigger it from conversation content alone. Review every comment
+in scope and improve it: delete the ones that don't carry information, trim
+the ones that over-explain, keep the ones that state non-obvious facts. Run
+the requested style checkers on the same scope. Output a per-item report
+first; only edit after the user confirms.
 
 Works on any language: Python is parsed exactly (tokenize/ast); other
 languages use per-extension comment-marker heuristics — treat those results
@@ -30,10 +33,10 @@ bare alternative-comparison is feedback-driven → delete.
 Comments citing concrete test instances (model names, hyper-parameters,
 parallel layouts, datasets) carry no code semantics and go stale — delete by
 default. If the code genuinely only works under a specific config, express
-the restriction with an `assert` (it executes, fails loudly, cannot rot) and
-keep at most one short comment pointing at it. Teaching examples with
-placeholder numbers are different: keep them, written relatively ("TP member
-0/1"), never "under config X".
+the restriction with an `assert` (fails loudly, cannot rot) and keep at most
+one short comment pointing at it. Teaching examples with placeholder numbers
+are different: keep them, written relatively ("TP member 0/1"), never "under
+config X".
 
 ## Four-tier classification
 
@@ -46,7 +49,7 @@ placeholder numbers are different: keep them, written relatively ("TP member
 4. **④ Keep / fine-tune** — non-obvious what/why, interface contracts (what
    a hook must guarantee), section dividers, one-line purpose docstrings,
    license/copyright headers (always keep). Fix only factual errors or
-   references that depend on non-local assumptions.
+   non-local assumptions.
 
 Docstrings follow the same tiers, with one difference: keep a one-line
 purpose statement on public functions/classes so the API stays readable.
@@ -63,10 +66,9 @@ python3 scripts/checks.py --check no-inner-import --range <start>..HEAD
 ```
 
 Findings are JSON: `{checker, file, line, column, text, message, parent...}`.
-Checkers only *find*; the fix goes through the same report-then-confirm
-flow as comments. Report all findings — the user decides (a
-`if TYPE_CHECKING:` import may be acceptable); never drop a finding with a
-plausible excuse.
+Checkers only *find*; fixes go through the same report-then-confirm flow.
+Report all findings — the user decides (a `if TYPE_CHECKING:` import may be
+acceptable); never drop a finding with a plausible excuse.
 
 ## Workflow
 
@@ -79,7 +81,6 @@ plausible excuse.
   modified *after* the start commit — comments created by the start commit
   are invisible. For a file created inside the range, ask the user whether
   to review its whole content (recommended) or only the diff lines.
-
 ### 2. Extract the candidate list / run checkers
 
 ```
@@ -92,8 +93,8 @@ Output: JSON items `{file, line, line_end, kind, text}` with
 kind ∈ `full_comment` / `inline_comment` / `docstring` (docstring only for
 Python). Best-effort — treat it as a candidate list and read the actual
 files anyway; non-Python extraction is heuristic (verify against the working
-tree). Then classify each item against the four tiers — the report must cite
-real file:line and real text.
+tree). Then classify each item — the report must cite real file:line and
+real text.
 
 ### 3. Report (default, before any edit)
 
@@ -116,5 +117,4 @@ skip the report step.
   C/C++/others: skip if no toolchain, say so.
 - `git diff` — self-check that only comments/findings changed (no behavior
   drift).
-- Commit only when asked; message style e.g.
-  `Trim feedback-driven and redundant comments in <area>`.
+- Commit only when asked, e.g. `Trim feedback-driven and redundant comments in <area>`.

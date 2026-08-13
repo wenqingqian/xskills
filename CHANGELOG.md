@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.1 (2026-08-13)
+
+- `x-code-clean` reclassified from passive to **active** (explicit invocation
+  only): description now carries the `Explicit-only:` prefix; registry and
+  README updated; t04 negative test now constructs a temporary passive skill
+  in the sandbox to exercise the passive-with-prefix contract.
+
 ## v0.1.0 (2026-08-13)
 
 - Initial release.

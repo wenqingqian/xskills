@@ -19,8 +19,8 @@ or its keywords; never auto-triggered.
 
 | name | type | description |
 | --- | --- | --- |
-| x-code-clean | passive | Review and clean up code comments and code-style violations (e.g. imports not at module top level) in files or a git commit range, any language; report-then-confirm workflow |
-| x-skills | active | Workbench: list the skills belonging to xskills with a short description of each |
+| x-code-clean | active | Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "trim comments"); never auto-triggered. Review and clean up code comments and code-style violations (e.g. imports not at module top level) in files or a git commit range, any language; report-then-confirm workflow |
+| x-skills | active | Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-skills", "list my skills"); never auto-triggered. Workbench: list the skills belonging to xskills with a short description of each |
 
 ## Adding a Skill
 
