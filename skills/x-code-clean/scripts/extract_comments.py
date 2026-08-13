@@ -147,8 +147,10 @@ def extract_from_heuristic(src, line_markers, block_pairs, added_lines=None):
             continue
         stripped = line.lstrip()
         if block_pairs:
+            matched_block = False
             for start_marker, end_marker in block_pairs:
                 if start_marker in stripped:
+                    matched_block = True
                     if end_marker in line:
                         # Single-line block comment: /* ... */.
                         items.append(
@@ -164,12 +166,14 @@ def extract_from_heuristic(src, line_markers, block_pairs, added_lines=None):
                         block_start = lineno
                         block_text = [line]
                     break
-            else:
+            if matched_block:
                 continue
-            continue
         for marker in line_markers:
             pos = line.find(marker)
             if pos == -1:
+                continue
+            # shebang lines are not comments (e.g. #!/usr/bin/env bash)
+            if marker == "#" and pos == 0 and line.startswith("#!"):
                 continue
             prefix = line[:pos].strip()
             items.append(
@@ -267,7 +271,6 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--range", help="git commit range, e.g. abc123..HEAD")
     ap.add_argument("--files", nargs="+", help="files to scan")
-    ap.add_argument("--json", action="store_true", help="machine-readable output")
     args = ap.parse_args()
 
     if not args.range and not args.files:
@@ -288,7 +291,7 @@ def main():
         for path in args.files:
             try:
                 src = open(path, encoding="utf-8").read()
-            except OSError as e:
+            except (OSError, UnicodeDecodeError) as e:
                 print(f"skip {path}: {e}", file=sys.stderr)
                 continue
             for item in extract_from_source(path, src):

@@ -1,6 +1,17 @@
 # xskills
 
-A repository that manages personal [ZCode](https://z.ai) skills and packages them into a ZCode plugin for unified management. For now, the only requirement is that this repository can be registered as a ZCode plugin and its skills can be invoked.
+A repository that manages personal [ZCode](https://z.ai) skills and packages them into a ZCode plugin for unified management. Every skill is strictly classified as **passive** (the agent auto-triggers it via the description) or **active** (explicit invocation only).
+
+## Skill Classification
+
+Every skill is registered in one file — [`SKILLS.md`](SKILLS.md) — with its name, type, and description:
+
+| Type | Invocation | Description format |
+| --- | --- | --- |
+| passive | Agent auto-triggers by judging the description | `x-<name>`: plain functional description |
+| active | User explicitly invokes by name or keyword; never auto-triggered | `x-<name>`: `Explicit-only:` prefix template + functional description |
+
+All skill names start with the `x-` prefix.
 
 ## Directory Layout
 
@@ -8,42 +19,52 @@ A repository that manages personal [ZCode](https://z.ai) skills and packages the
 xskills/
 ├── .zcode-plugin/
 │   └── plugin.json       # Plugin manifest (name/description/version/author)
+├── marketplace.json      # Marketplace manifest (version must match plugin.json)
+├── SKILLS.md             # Skill registry: one file classifying all skills (passive/active)
 ├── skills/
-│   └── <skill-name>/
-│       └── SKILL.md      # Skill body: YAML frontmatter (name/description) + instructions
+│   ├── x-code-clean/     # passive — comment cleanup + style checkers
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       ├── extract_comments.py
+│   │       ├── checks.py
+│   │       └── checks/   # checker registry (add a checker = 1 file + 1 registration line)
+│   └── x-skills/         # active — workbench: list this plugin's skills
+│       └── SKILL.md
+├── DEVELOPMENT.md        # Contributor guide: classification / develop / verify / release
 ├── AGENTS.md             # Project working guide (AGENTSPACE entry notes)
-├── DEVELOPMENT.md        # Contributor guide: develop / verify / release process
-├── AGENTSPACE/           # Experiment & iteration workspace (gitignored, NOT under git)
+├── CHANGELOG.md          # Release history per version
 └── README.md
 ```
 
-Reference template: `~/.zcode/cli/plugins/cache/zcode-plugins-official/example-plugin/0.2.0/`
+## Available Skills
+
+| name | type | description |
+| --- | --- | --- |
+| x-code-clean | passive | Review and clean up code comments and code-style violations (e.g. imports not at module top level) in files or a git commit range, any language; report-then-confirm workflow |
+| x-skills | active | Workbench: list the skills belonging to xskills with a short description of each |
 
 ## Development Process
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for the full process: how to develop skills
-(structure, frontmatter, language policy), how to verify (sandbox tests, release gate),
-and how to release (version discipline, changelog, commit style).
-
-## How to Add a Skill
-
-1. Create a directory under `skills/`, e.g. `skills/my-skill/`;
-2. Create `SKILL.md` inside it, starting with YAML frontmatter:
-
-   ```markdown
-   ---
-   name: my-skill
-   description: When this skill should be triggered (be specific for accurate auto-triggering)
-   ---
-
-   # Instructions
-   ```
-
-3. Write a clear `description` covering the trigger scenarios — the more specific, the more accurate the auto-triggering.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the full process: skill classification
+(passive/active), how to develop skills (structure, frontmatter, language policy),
+how to verify (`verify-release.sh` gate + `self-test.sh` regression suite), and how
+to release (version discipline, changelog, commit style).
 
 ## How to Register as a ZCode Plugin
 
-Register this repository as a ZCode plugin (the manifest lives at `.zcode-plugin/plugin.json`). Once registered, all skills under `skills/` can be invoked in sessions.
+1. Push this repository to its remote (`origin`).
+2. Add the repository as a plugin marketplace in ZCode (the manifest lives at
+   `marketplace.json`; the plugin itself is served from `./`).
+3. Install the `xskills` plugin from that marketplace. Once registered, all skills
+   under `skills/` can be invoked in sessions:
+   - passive skills auto-trigger via their descriptions;
+   - active skills (e.g. `x-skills`) run only when explicitly invoked.
+
+## Release History
+
+| Version | Date | What changed |
+| --- | --- | --- |
+| v0.1.0 | 2026-08-13 | Initial release: skill classification system (passive/active, single registry file SKILLS.md), x-code-clean skill (comment cleanup + no-inner-import checker), x-skills workbench skill, plugin + marketplace manifests, verify-release gate + self-test suite |
 
 ## AGENTSPACE
 
