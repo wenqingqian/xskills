@@ -21,8 +21,6 @@ as candidate lists and verify against the real files.
 worked examples, the assert-vs-example rule, and the pitfalls.
 
 ## The core rule (the user's criterion)
-
-A comment may say **what this code does** and **why it is done this way**.
 It must NOT say **why the code is not written some other way** ("why not
 alternative X") — residue of a past Q&A, noise for every future reader. A
 "why not" with a concrete in-code consequence is a design note → keep; a
@@ -35,8 +33,7 @@ parallel layouts, datasets) carry no code semantics and go stale — delete by
 default. If the code genuinely only works under a specific config, express
 the restriction with an `assert` (fails loudly, cannot rot) and keep at most
 one short comment pointing at it. Teaching examples with placeholder numbers
-are different: keep them, written relatively ("TP member 0/1"), never "under
-config X".
+are different: keep them, written relatively ("TP member 0/1").
 
 ## Four-tier classification
 
@@ -54,16 +51,20 @@ config X".
 Docstrings follow the same tiers, with one difference: keep a one-line
 purpose statement on public functions/classes so the API stays readable.
 
+## Invocation parameters
+
+The user may append parameters to the invocation; map them to the scripts:
+
+| Invocation | Runs |
+| --- | --- |
+| `x-code-clean --list` | `checks.py --list` — list checkers |
+| `x-code-clean --all --files a.py` | `checks.py --all --files a.py` — every checker |
+| `x-code-clean --no-inner-import --files a.py` | `checks.py --check no-inner-import --files a.py` |
+| `... --range <start>..HEAD` | git-mode scope on the same command |
+
+`--<checker-id>` is shorthand for `--check <checker-id>`.
+
 ## Style checkers (optional, on request)
-
-Run the registered checkers when the user asks for style checks beyond
-comments (e.g. "imports must be at the top", "--no-inner-import"):
-
-```
-python3 scripts/checks.py --list                          # available checkers
-python3 scripts/checks.py --check no-inner-import --files a.py b.py
-python3 scripts/checks.py --check no-inner-import --range <start>..HEAD
-```
 
 Findings are JSON: `{checker, file, line, column, text, message, parent...}`.
 Checkers only *find*; fixes go through the same report-then-confirm flow.
@@ -86,7 +87,6 @@ acceptable); never drop a finding with a plausible excuse.
 ```
 python3 scripts/extract_comments.py --range <start>..HEAD        # git mode
 python3 scripts/extract_comments.py --files a.py b.sh conf.yml   # file mode
-python3 scripts/checks.py --check no-inner-import --files ...    # style check
 ```
 
 Output: JSON items `{file, line, line_end, kind, text}` with

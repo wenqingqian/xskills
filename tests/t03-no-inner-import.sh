@@ -23,6 +23,11 @@ EOF
 LIST="$(python3 "$REPO/skills/x-code-clean/scripts/checks.py" --list)" || fail "--list failed"
 assert_output_contains "$LIST" "no-inner-import"
 
+# direct "--<checker-id>" form is shorthand for --check <id>
+OUT0="$(python3 "$REPO/skills/x-code-clean/scripts/checks.py" --no-inner-import --files "$SB/inner.py")" \
+  || fail "direct checker flag failed"
+assert_output_contains "$OUT0" "FunctionDef 'foo'"
+
 # inner import reported with parent
 OUT="$(python3 "$REPO/skills/x-code-clean/scripts/checks.py" --check no-inner-import --files "$SB/inner.py")" \
   || fail "checks.py exited nonzero"

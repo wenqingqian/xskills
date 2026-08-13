@@ -66,7 +66,15 @@ def main():
     ap.add_argument("--list", action="store_true", help="list registered checkers and exit")
     ap.add_argument("--range", help="git commit range, e.g. abc123..HEAD")
     ap.add_argument("--files", nargs="+", help="files to scan")
-    args = ap.parse_args()
+    # Map "--<checker-id>" (e.g. --no-inner-import) onto --check <id> so a
+    # checker can be selected directly, without knowing the --check flag.
+    argv = []
+    for a in sys.argv[1:]:
+        if a.startswith("--") and a[2:] in CHECKERS:
+            argv += ["--check", a[2:]]
+        else:
+            argv.append(a)
+    args = ap.parse_args(argv)
 
     if args.list:
         for cid, mod in sorted(CHECKERS.items()):
