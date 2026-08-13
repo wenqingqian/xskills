@@ -1,35 +1,44 @@
 ---
 name: x-skills
-description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-skills", "list my skills", "show skills", "what skills do I have"); never auto-triggered. When invoked, list the skills belonging to the xskills plugin with a short description of each.
+description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-skills", "list my skills", "show skills", "what skills do I have"); never auto-triggered. When invoked, list the skills belonging to the xskills plugin with a short description of each; with `--usage <name>`, show the invocation parameters of one skill.
 ---
 
 # x-skills Workbench
 
-List the skills belonging to this plugin (xskills) with a short description of
-each, so the user can see what is available and how each one is invoked.
+List the skills belonging to this plugin (xskills) with a short description
+of each, so the user can see what is available and how each one is invoked.
 
 ## When to invoke
 
-This is an **active** skill: it runs only when the user explicitly asks for it
-(by name or by keywords such as "list skills" / "show my skills"). Never
+This is an **active** skill: it runs only when the user explicitly asks for
+it (by name or by keywords such as "list skills" / "show my skills"). Never
 auto-trigger it based on the conversation content alone.
+
+## Invocation parameters
+
+| Invocation | Shows |
+| --- | --- |
+| `x-skills` | all skills: name / type / description / usage |
+| `x-skills --usage <name>` | the usage column of one skill (its invocation parameters) |
 
 ## Steps
 
-1. Read `SKILLS.md` at the plugin root (the registry — single source of truth
-   for the skill list and their classification).
-2. Present the skills in a table:
+1. Read `SKILLS.md` at the plugin root (the registry — single source of
+   truth for the skill list, classification, and usage).
+2. With `--usage <name>`: show that skill's row (name, type, description,
+   usage) only; if the name is not in the registry, say so and list the
+   registered names.
+3. Without parameters, present the skills in a table:
 
-   | name | type | description |
-   | --- | --- | --- |
+   | name | type | description | usage |
+   | --- | --- | --- | --- |
 
    For each row from the registry, explain briefly:
    - `passive`: the agent auto-triggers it when the description matches the
      user's request — no need to name the skill.
-   - `active`: the user must invoke it explicitly (by name or keyword); it is
-     never auto-triggered.
-
-3. If the registry mentions a skill whose `skills/` directory is missing (or
+   - `active`: the user must invoke it explicitly (by name or keyword); it
+     is never auto-triggered. The usage column shows how.
+4. If the registry mentions a skill whose `skills/` directory is missing (or
    vice versa), report the drift — do not silently present a stale list.
 
 ## Notes
