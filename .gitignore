@@ -1,0 +1,5 @@
+# AGENTSPACE workspace: not under git management, ignore entirely
+AGENTSPACE/
+
+# macOS
+.DS_Store
