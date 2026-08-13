@@ -12,11 +12,18 @@ xskills/
 │   └── <skill-name>/
 │       └── SKILL.md      # Skill body: YAML frontmatter (name/description) + instructions
 ├── AGENTS.md             # Project working guide (AGENTSPACE entry notes)
+├── DEVELOPMENT.md        # Contributor guide: develop / verify / release process
 ├── AGENTSPACE/           # Experiment & iteration workspace (gitignored, NOT under git)
 └── README.md
 ```
 
 Reference template: `~/.zcode/cli/plugins/cache/zcode-plugins-official/example-plugin/0.2.0/`
+
+## Development Process
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the full process: how to develop skills
+(structure, frontmatter, language policy), how to verify (sandbox tests, release gate),
+and how to release (version discipline, changelog, commit style).
 
 ## How to Add a Skill
 
