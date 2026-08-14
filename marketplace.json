@@ -26,6 +26,7 @@
         "workbench",
         "personal"
       ],
+      "icon": "https://raw.githubusercontent.com/wenqingqian/xskills/main/icons/icon.png",
       "displayName": "xskills"
     }
   ],

@@ -50,8 +50,14 @@ echo "[2] no Chinese in committed content"
 # scan files that will be committed (everything tracked/untracked except AGENTSPACE/ and .git)
 # python3 is already a gate dependency; BSD grep has no -P (a silent no-op), so
 # use python3 for the scan and fail loudly if it is unavailable.
+# Binary files (not decodable as UTF-8 text) are not "content" and pass.
 while IFS= read -r f; do
-  if ! python3 -c "import sys; sys.exit(1 if any('\u4e00' <= c <= '\u9fff' for c in open(sys.argv[1], encoding='utf-8').read()) else 0)" "$f" 2>/dev/null; then
+  if ! python3 -c "import sys
+try:
+    text = open(sys.argv[1], encoding='utf-8').read()
+except UnicodeDecodeError:
+    sys.exit(0)  # binary file, not text content
+sys.exit(1 if any('\u4e00' <= c <= '\u9fff' for c in text) else 0)" "$f" 2>/dev/null; then
     echo "  [issue] Chinese found in: ${f#$ROOT/}"
     issues=$((issues+1))
   fi
