@@ -35,6 +35,10 @@ xskills/
 │   └── x-subagent-orchestration/  # active — default-to-delegate subagent rules
 │       └── SKILL.md
 ├── DEVELOPMENT.md        # Contributor guide: classification / develop / verify / release
+├── new-version.sh         # Dev tool: scaffold a version (bump markers + CHANGELOG skeleton)
+├── verify-release.sh      # Dev tool: release gate [0]-[6]
+├── self-test.sh           # Dev tool: regression suite runner
+├── tests/                 # Regression scenarios (t01-t04, sandbox-isolated)
 ├── AGENTS.md             # Project working guide (AGENTSPACE entry notes)
 ├── CHANGELOG.md          # Release history per version
 └── README.md

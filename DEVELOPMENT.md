@@ -95,26 +95,34 @@ xskills/
 
 Fixed gate sequence for every release:
 
-1. **Bump version** in `.zcode-plugin/plugin.json` AND `marketplace.json` (both the
-   top-level `version` and `plugins[0].version`; bare version, no `v` prefix).
-2. **Add a CHANGELOG entry** at the top of `CHANGELOG.md` (keep this file at repo root):
-   `## vX.Y.Z (YYYY-MM-DD)` + one bullet per change. The changelog is the record of
-   what changed and why.
-3. **Update README** release history table with the new version row.
+1. **Scaffold the version**: `bash new-version.sh X.Y.Z` — validates the
+   format and monotonic increase, bumps the version in `.zcode-plugin/plugin.json`
+   and `marketplace.json` (top-level + `plugins[0]`), and inserts a CHANGELOG
+   skeleton at the top.
+2. **Fill the CHANGELOG entry** at the top of `CHANGELOG.md`: one bullet per
+   change. The changelog is the record of what changed and why.
+3. **Add the README release-history row** (`| vX.Y.Z | date | what changed |`).
 4. **Run the release gate** `bash verify-release.sh` — all checks must pass.
 5. **Run the regression suite** `bash self-test.sh` — all green.
 6. **Code review** — review the diff before committing.
 7. **Commit + push**. Commit style: `<type> v<version> <description>`
-   (e.g. `feat: v0.1.0 add x-skills workbench`).
+   (e.g. `feat: v0.3.0 add x-example skill`).
 
 ### Version Discipline
 
-- **Bump only on capability changes**: new skill, changed skill behavior, or manifest
-  changes bump the version.
-- **No bump for dev tooling/docs**: DEVELOPMENT.md, tests, and doc-only changes ship
-  without a version bump.
-- **Batch small fixes**: accumulate small fixes into ONE release — never ship a version
-  per fix.
+- **Semantics are decided per release with the user** — there is no fixed
+  minor/patch rule; ask the user which number to use when scaffolding
+  (`bash new-version.sh` asks nothing, it only enforces monotonic increase).
+  Current practice: new skill/capability → minor (0.2 → 0.3); fixes →
+  patch (0.2.1); breaking changes or milestones → major.
+- **Long-term 0.x**: this plugin stays in 0.x for the foreseeable future;
+  no 1.0 target date.
+- **Bump only on capability changes**: new skill, changed skill behavior, or
+  manifest changes bump the version.
+- **No bump for dev tooling/docs**: DEVELOPMENT.md, tests, and doc-only
+  changes ship without a version bump.
+- **Batch small fixes**: accumulate small fixes into ONE release — never ship
+  a version per fix.
 - **Unpushed commits roll into the next version**.
 
 ### Script Pattern Discipline (MUST, when writing shell assets)
