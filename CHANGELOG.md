@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.3.0 (2026-08-19)
+
+- Kimi plugin support: new `kimi.plugin.json` manifest at the repo root
+  (name / version / description / author / homepage / license / keywords /
+  skills / interface) so the plugin can be installed via Kimi's `/plugins
+  install` (zip or GitHub URL); Kimi publishes no marketplace listing, so no
+  additional marketplace file.
+- `new-version.sh` now syncs the version across all three manifests
+  (`.zcode-plugin/plugin.json`, `kimi.plugin.json`, `marketplace.json`
+  top-level and `plugins[0]`).
+- `verify-release.sh` gained a Kimi manifest contract check: name must equal
+  `xskills` and match `[a-z0-9][a-z0-9_-]{0,63}`, skills path must resolve to
+  `skills`, required `interface` metadata must be present, and top-level keys
+  must stay within the Kimi schema whitelist.
+- Tests updated: t05 asserts the kimi marker sync after a `new-version.sh`
+  bump; t04 adds a negative case for a Kimi contract violation.
+
 ## v0.2.0 (2026-08-13)
 
 - Three new skills, localized from the local agent skills (all active,

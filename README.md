@@ -20,6 +20,7 @@ xskills/
 ├── .zcode-plugin/
 │   └── plugin.json       # Plugin manifest (name/description/version/author)
 ├── marketplace.json      # Marketplace manifest (version must match plugin.json)
+├── kimi.plugin.json      # Kimi plugin manifest (name/version/skills/interface)
 ├── SKILLS.md             # Skill registry: one file classifying all skills (passive/active)
 ├── skills/
 │   ├── x-code-clean/     # active — comment cleanup + style checkers (explicit invocation only)
@@ -36,7 +37,7 @@ xskills/
 │       └── SKILL.md
 ├── DEVELOPMENT.md        # Contributor guide: classification / develop / verify / release
 ├── new-version.sh         # Dev tool: scaffold a version (bump markers + CHANGELOG skeleton)
-├── verify-release.sh      # Dev tool: release gate [0]-[6]
+├── verify-release.sh      # Dev tool: release gate [0]-[7]
 ├── self-test.sh           # Dev tool: regression suite runner
 ├── tests/                 # Regression scenarios (t01-t04, sandbox-isolated)
 ├── AGENTS.md             # Project working guide (AGENTSPACE entry notes)
@@ -61,7 +62,9 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for the full process: skill classification
 how to verify (`verify-release.sh` gate + `self-test.sh` regression suite), and how
 to release (version discipline, changelog, commit style).
 
-## How to Register as a ZCode Plugin
+## How to Register as a Plugin
+
+### ZCode
 
 1. Push this repository to its remote (`origin`).
 2. Add the repository as a plugin marketplace in ZCode (the manifest lives at
@@ -71,10 +74,19 @@ to release (version discipline, changelog, commit style).
    - passive skills auto-trigger via their descriptions;
    - active skills (e.g. `x-skills`) run only when explicitly invoked.
 
+### Kimi
+
+Kimi publishes no marketplace listing; the plugin installs directly from the
+manifest at the repo root (`kimi.plugin.json`). Install it locally via Kimi's
+`/plugins` with a zip of this repository or its GitHub URL, then the skills
+under `skills/` become invocable the same way (passive auto-trigger / active
+explicit-only).
+
 ## Release History
 
 | Version | Date | What changed |
 | --- | --- | --- |
+| v0.3.0 | 2026-08-19 | Kimi plugin support: new kimi.plugin.json manifest (name/version/skills/interface); new-version.sh syncs all three manifests; verify gate gains the Kimi contract check; t05/t04 updated |
 | v0.2.0 | 2026-08-13 | Three new active skills localized from local agent skills (x-code-review via subagent cluster, x-grilling, x-subagent-orchestration); x-skills workbench lists name/type/description/usage per skill with `--usage <name>` support; registry gained a usage column |
 | v0.1.1 | 2026-08-13 | x-code-clean reclassified from passive to active (explicit invocation only, Explicit-only: description prefix); registry/README/t04 updated accordingly |
 | v0.1.0 | 2026-08-13 | Initial release: skill classification system (passive/active, single registry file SKILLS.md), x-code-clean skill (comment cleanup + no-inner-import checker), x-skills workbench skill, plugin + marketplace manifests, verify-release gate + self-test suite |

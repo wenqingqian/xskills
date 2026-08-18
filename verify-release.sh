@@ -2,12 +2,14 @@
 # Dev tool — repo root only, NOT part of the deployed plugin.
 # Release gate. Read-only. Checks (exit 0 = release-ready):
 #   [0] JSON validity
-#   [1] version consistency (plugin.json <-> marketplace.json <-> CHANGELOG)
+#   [1] version consistency (plugin.json <-> kimi.plugin.json <->
+#       marketplace.json <-> CHANGELOG)
 #   [2] no Chinese in committed content (user rule)
 #   [3] script syntax (bash -n on .sh, py_compile on .py)
 #   [4] SKILL size budget (<=120 lines per SKILL.md)
 #   [5] registry <-> skills/ sync + name prefix + classification contract
 #   [6] README release history coverage
+#   [7] Kimi manifest contract (name/skills/interface/key whitelist)
 # Usage: bash verify-release.sh
 set -euo pipefail
 
@@ -18,7 +20,7 @@ echo "== xskills verify-release: $ROOT =="
 
 # --- [0] JSON validity ------------------------------------------------------
 echo "[0] JSON validity"
-JSON_FILES=( "$ROOT/.zcode-plugin/plugin.json" "$ROOT/marketplace.json" )
+JSON_FILES=( "$ROOT/.zcode-plugin/plugin.json" "$ROOT/kimi.plugin.json" "$ROOT/marketplace.json" )
 for f in "${JSON_FILES[@]}"; do
   if ! python3 -m json.tool "$f" >/dev/null 2>&1; then
     echo "  [issue] invalid JSON: ${f#$ROOT/}"
@@ -36,9 +38,10 @@ if [ -z "$LATEST" ]; then
   LATEST="?"
 fi
 PLUGIN_VER="$(python3 -c "import json,sys; print(json.load(open('$ROOT/.zcode-plugin/plugin.json'))['version'])" 2>/dev/null || echo missing)"
+KIMI_VER="$(python3 -c "import json,sys; print(json.load(open('$ROOT/kimi.plugin.json'))['version'])" 2>/dev/null || echo missing)"
 MKTP_VER="$(python3 -c "import json,sys; d=json.load(open('$ROOT/marketplace.json')); print(d['version'])" 2>/dev/null || echo missing)"
 MKTP_P0_VER="$(python3 -c "import json,sys; d=json.load(open('$ROOT/marketplace.json')); print(d['plugins'][0]['version'])" 2>/dev/null || echo missing)"
-for name in "$PLUGIN_VER" "$MKTP_VER" "$MKTP_P0_VER"; do
+for name in "$PLUGIN_VER" "$KIMI_VER" "$MKTP_VER" "$MKTP_P0_VER"; do
   if [ "$name" != "$LATEST" ]; then
     echo "  [issue] version mismatch: expected v$LATEST, got '$name'"
     issues=$((issues+1))
@@ -161,6 +164,61 @@ if [ "$LATEST" != "?" ]; then
     echo "  [issue] README.md missing release history row for v$LATEST"
     issues=$((issues+1))
   fi
+fi
+
+# --- [7] Kimi manifest contract ----------------------------------------------
+# Portable release-gate subset of the Kimi plugin schema (kimi.plugin.json —
+# name required, [a-z0-9][a-z0-9_-]{0,63}). Kimi installs via /plugins install
+# (local/zip/GitHub); there is no Kimi marketplace manifest to check.
+echo "[7] Kimi manifest contract"
+KIMI_OUT="$(python3 - "$ROOT/kimi.plugin.json" <<'EOF' 2>&1
+import json, re, sys
+path = sys.argv[1]
+issues = []
+try:
+    kimi = json.load(open(path))
+except Exception as e:
+    print(f"  [issue] kimi.plugin.json unreadable: {e}")
+    sys.exit(0)
+allowed_top = {
+    "name", "version", "description", "keywords", "author", "homepage",
+    "license", "interface", "skills", "agents", "commands", "mcpServers",
+    "hooks", "sessionStart", "systemPrompt", "systemPromptPath",
+}
+if not isinstance(kimi, dict):
+    issues.append("kimi.plugin.json root must be an object")
+else:
+    unknown = sorted(set(kimi) - allowed_top)
+    if unknown:
+        issues.append(f"unsupported top-level fields: {', '.join(unknown)}")
+    for field in ("name", "version", "description"):
+        if not isinstance(kimi.get(field), str) or not kimi[field].strip():
+            issues.append(f"required non-empty field: {field}")
+    name = kimi.get("name", "")
+    if name != "xskills":
+        issues.append(f"plugin name must be xskills, got {name!r}")
+    elif not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", name):
+        issues.append(f"plugin name violates [a-z0-9][a-z0-9_-]{{0,63}}: {name!r}")
+    skills_path = str(kimi.get("skills", "")).rstrip("/")
+    if skills_path not in ("skills", "./skills"):
+        issues.append(f"skills path must resolve to skills, got {kimi.get('skills')!r}")
+    interface = kimi.get("interface")
+    required_interface = (
+        "displayName", "shortDescription", "longDescription", "developerName", "websiteURL",
+    )
+    if not isinstance(interface, dict):
+        issues.append("interface object is required")
+    else:
+        for field in required_interface:
+            if not isinstance(interface.get(field), str) or not interface[field].strip():
+                issues.append(f"required non-empty interface.{field}")
+for msg in issues:
+    print(f"  [issue] {msg}")
+EOF
+)"
+if [ -n "$KIMI_OUT" ]; then
+  echo "$KIMI_OUT"
+  issues=$((issues+1))
 fi
 
 # --- summary ----------------------------------------------------------------

@@ -1,0 +1,26 @@
+{
+  "name": "xskills",
+  "version": "0.3.0",
+  "description": "Personal skill collection managed as a plugin: every skill is strictly classified as passive (agent auto-triggers via description) or active (explicit invocation only, with an explicit-only description prefix). Includes a workbench skill (x-skills) that lists the plugin's skills.",
+  "author": {
+    "name": "wenqingqian",
+    "url": "https://github.com/wenqingqian"
+  },
+  "homepage": "https://github.com/wenqingqian/xskills",
+  "license": "MIT",
+  "keywords": [
+    "xskills",
+    "skills",
+    "plugin",
+    "workbench",
+    "personal"
+  ],
+  "skills": "skills",
+  "interface": {
+    "displayName": "xskills",
+    "shortDescription": "Personal skill collection packaged as a plugin: passive/active classification plus an x-skills workbench.",
+    "longDescription": "Manages personal skills and packages them into a plugin for unified management. Every skill is strictly classified as passive (the agent auto-triggers it via the description) or active (explicit invocation only); an x-skills workbench skill lists all skills with descriptions and usage.",
+    "developerName": "wenqingqian",
+    "websiteURL": "https://github.com/wenqingqian/xskills"
+  }
+}

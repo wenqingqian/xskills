@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Dev tool — repo root only, NOT part of the deployed plugin.
 # Scaffold a new plugin version: bump the version markers (plugin.json +
-# marketplace.json top-level and plugins[0]) and insert a CHANGELOG skeleton
-# at the top.
+# kimi.plugin.json + marketplace.json top-level and plugins[0]) and insert a
+# CHANGELOG skeleton at the top.
 #
 # Usage: bash new-version.sh X.Y.Z
 # After running: fill the CHANGELOG bullets, add the README release-history
@@ -47,6 +47,7 @@ import json, sys
 ver, root = sys.argv[1], sys.argv[2]
 targets = [
     (f"{root}/.zcode-plugin/plugin.json", lambda d: d.__setitem__("version", ver)),
+    (f"{root}/kimi.plugin.json", lambda d: d.__setitem__("version", ver)),
     # marketplace carries BOTH a top-level version and plugins[0].version —
     # one lambda per field would reload the unmodified file and the last
     # write wins, dropping the other field (drift caught by verify-release [1])
@@ -89,7 +90,7 @@ EOF
 
 echo ""
 echo "Scaffolded v$NEW (from v$LATEST):"
-echo "  - version fields bumped in plugin.json / marketplace.json"
+echo "  - version fields bumped in plugin.json / kimi.plugin.json / marketplace.json"
 echo "  - CHANGELOG.md skeleton at top (fill the bullets)"
 echo ""
 echo "Next:"

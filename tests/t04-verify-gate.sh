@@ -76,5 +76,24 @@ assert_output_contains "$OUT" "x-tmp-passive: passive skill description must NOT
 rm -rf "$SB/repo/skills/x-tmp-passive"
 sed -i '' '/| x-tmp-passive |/d' "$SB/repo/SKILLS.md"
 
+# --- negative 6: kimi manifest contract violation fails ----------------------
+python3 - "$SB/repo" <<'EOF'
+import json, sys
+p = sys.argv[1] + "/kimi.plugin.json"
+d = json.load(open(p))
+d["interface"].pop("websiteURL", None)
+open(p, "w").write(json.dumps(d, indent=2) + "\n")
+EOF
+OUT="$(gate)" || true
+assert_output_contains "$OUT" "[fail]"
+assert_output_contains "$OUT" "required non-empty interface.websiteURL"
+python3 - "$SB/repo" <<'EOF'
+import json, sys
+p = sys.argv[1] + "/kimi.plugin.json"
+d = json.load(open(p))
+d["interface"]["websiteURL"] = "https://github.com/wenqingqian/xskills"
+open(p, "w").write(json.dumps(d, indent=2) + "\n")
+EOF
+
 rm -rf "$SB"
 echo "PASS: t04"

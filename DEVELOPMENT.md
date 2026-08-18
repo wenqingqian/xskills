@@ -28,8 +28,9 @@ Rules:
 ```
 xskills/
 ├── .zcode-plugin/
-│   └── plugin.json       # Plugin manifest (name/description/version/author)
+│   └── plugin.json       # ZCode plugin manifest (name/description/version/author)
 ├── marketplace.json      # Marketplace manifest (version must match plugin.json)
+├── kimi.plugin.json      # Kimi plugin manifest (name/version/skills/interface)
 ├── SKILLS.md             # Skill registry: one file classifying all skills (passive/active)
 ├── skills/
 │   └── <x-name>/
@@ -84,9 +85,10 @@ xskills/
 3. **End-to-end**: exercise the full skill flow (trigger → action → result) once in a
    real, third-party directory outside this repo.
 4. **Release gate (run before every release)**: `bash verify-release.sh` — JSON
-   validity, version consistency (plugin.json ↔ marketplace.json ↔ CHANGELOG), no
-   Chinese in committed content, `bash -n` / `py_compile`, SKILL size budget,
-   registry ↔ `skills/` sync, README release history. Fix any issue it reports.
+   validity, version consistency (plugin.json ↔ kimi.plugin.json ↔
+   marketplace.json ↔ CHANGELOG), no Chinese in committed content,
+   `bash -n` / `py_compile`, SKILL size budget, registry ↔ `skills/` sync,
+   README release history, Kimi manifest contract. Fix any issue it reports.
 5. **Regression suite**: `bash self-test.sh` — runs every `tests/t[0-9]*.sh` scenario
    in an isolated sandbox (repo never modified).
 6. **Dogfooding**: after release, install the plugin and invoke a skill in a real session.
@@ -96,9 +98,9 @@ xskills/
 Fixed gate sequence for every release:
 
 1. **Scaffold the version**: `bash new-version.sh X.Y.Z` — validates the
-   format and monotonic increase, bumps the version in `.zcode-plugin/plugin.json`
-   and `marketplace.json` (top-level + `plugins[0]`), and inserts a CHANGELOG
-   skeleton at the top.
+   format and monotonic increase, bumps the version in `.zcode-plugin/plugin.json`,
+   `kimi.plugin.json`, and `marketplace.json` (top-level + `plugins[0]`), and
+   inserts a CHANGELOG skeleton at the top.
 2. **Fill the CHANGELOG entry** at the top of `CHANGELOG.md`: one bullet per
    change. The changelog is the record of what changed and why.
 3. **Add the README release-history row** (`| vX.Y.Z | date | what changed |`).
