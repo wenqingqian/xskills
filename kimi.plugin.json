@@ -15,7 +15,7 @@
     "workbench",
     "personal"
   ],
-  "skills": "skills",
+  "skills": "./skills/",
   "interface": {
     "displayName": "xskills",
     "shortDescription": "Personal skill collection packaged as a plugin: passive/active classification plus an x-skills workbench.",
