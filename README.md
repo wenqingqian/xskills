@@ -23,6 +23,8 @@ xskills/
 ├── kimi.plugin.json      # Kimi plugin manifest (name/version/skills/interface)
 ├── SKILLS.md             # Skill registry: one file classifying all skills (passive/active)
 ├── skills/
+│   ├── x-better-commit/  # active — commit message title + body rules (draft / rewrite)
+│   │   └── SKILL.md
 │   ├── x-code-clean/     # active — comment cleanup + style checkers (explicit invocation only)
 │   │   ├── SKILL.md
 │   │   └── scripts/
@@ -49,6 +51,7 @@ xskills/
 
 | name | type | description | usage |
 | --- | --- | --- | --- |
+| x-better-commit | active | Explicit-only: draft or rewrite a git commit message (title + body) from the staged diff or an existing commit — type-prefixed imperative title, optional why-over-how body — then commit or amend | `x-better-commit`; `x-better-commit --amend`; `x-better-commit <rev>` |
 | x-code-clean | active | Explicit-only: review and clean up code comments and code-style violations (e.g. imports not at module top level) in files or a git commit range, any language; report-then-confirm workflow | `x-code-clean --list`; `--all --files <f>`; `--no-inner-import --files <f>`; `--no-inner-import --range <start>..HEAD` |
 | x-code-review | active | Explicit-only: multi-axis code review of uncommitted changes using the code-review subagent cluster (major + sub-N + merger + executor), then apply approved fixes | `x-code-review`; `x-code-review --range <start>..HEAD` |
 | x-grilling | active | Explicit-only: interview the user relentlessly about a plan, decision, or idea until a shared understanding is reached | `x-grilling <topic>` |
@@ -86,6 +89,7 @@ explicit-only).
 
 | Version | Date | What changed |
 | --- | --- | --- |
+| v0.4.0 | 2026-08-27 | New active skill x-better-commit: commit title rules + optional body rules with three modes (commit staged work, --amend last unpushed commit, improve any commit's message in place); registry and README updated |
 | v0.3.0 | 2026-08-19 | Kimi plugin support: new kimi.plugin.json manifest (name/version/skills/interface); new-version.sh syncs all three manifests; verify gate gains the Kimi contract check; t05/t04 updated |
 | v0.2.0 | 2026-08-13 | Three new active skills localized from local agent skills (x-code-review via subagent cluster, x-grilling, x-subagent-orchestration); x-skills workbench lists name/type/description/usage per skill with `--usage <name>` support; registry gained a usage column |
 | v0.1.1 | 2026-08-13 | x-code-clean reclassified from passive to active (explicit invocation only, Explicit-only: description prefix); registry/README/t04 updated accordingly |

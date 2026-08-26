@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.4.0 (2026-08-27)
+
+- New active skill `x-better-commit`: draft or rewrite a git commit
+  message — title and body — from the staged diff or an existing commit.
+  Carries the title rules (type prefix, imperative mood, specific and
+  diff-grounded, <=50/72 chars, one coherent purpose — tightly coupled
+  changes may share a commit) and the body rules (optional by default:
+  only non-obvious changes get a body; when written — why before what,
+  wrapped at 72, behavior over narration, concrete numbers, footer
+  refs), plus a final check that refuses to rewrite published history
+  and a worked example.
+- Three modes: `x-better-commit` commits staged work, `--amend` rewrites
+  the last unpushed commit, `<rev>` prints an improved message without
+  touching history.
+- SKILLS.md registry and README (layout + skills table) updated for the
+  new skill.
+
 ## v0.3.0 (2026-08-19)
 
 - Kimi plugin support: new `kimi.plugin.json` manifest at the repo root

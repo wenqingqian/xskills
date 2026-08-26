@@ -13,7 +13,7 @@
       "description_i18n": {
         "en": "Personal skill collection managed as a ZCode plugin: every skill is strictly classified as passive (agent auto-triggers via description) or active (explicit invocation only, with an explicit-only description prefix). Includes a workbench skill (x-skills) that lists the plugin's skills."
       },
-      "version": "0.3.0",
+      "version": "0.4.0",
       "author": {
         "name": "wenqingqian",
         "url": "https://github.com/wenqingqian"
@@ -30,5 +30,5 @@
       "displayName": "xskills"
     }
   ],
-  "version": "0.3.0"
+  "version": "0.4.0"
 }
