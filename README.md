@@ -25,7 +25,7 @@ xskills/
 ├── skills/
 │   ├── x-better-commit/  # active — commit message title + body rules (draft / rewrite)
 │   │   └── SKILL.md
-│   ├── x-code-clean/     # active — comment cleanup + style checkers (explicit invocation only)
+│   ├── x-code-clean/     # active — comment cleanup + style + dead-code checkers (explicit invocation only)
 │   │   ├── SKILL.md
 │   │   └── scripts/
 │   │       ├── extract_comments.py
@@ -52,7 +52,7 @@ xskills/
 | name | type | description | usage |
 | --- | --- | --- | --- |
 | x-better-commit | active | Explicit-only: draft or rewrite a git commit message (title + body) from the staged diff or an existing commit — type-prefixed imperative title, optional why-over-how body — then commit or amend | `x-better-commit`; `x-better-commit --amend`; `x-better-commit <rev>` |
-| x-code-clean | active | Explicit-only: review and clean up code comments and code-style violations (e.g. imports not at module top level) in files or a git commit range, any language; report-then-confirm workflow | `x-code-clean --list`; `--all --files <f>`; `--no-inner-import --files <f>`; `--no-inner-import --range <start>..HEAD` |
+| x-code-clean | active | Explicit-only: three check categories over a natural-language scope (default uncommitted changes): comment cleanup (feedback-driven why-not, redundant prose, unnecessary cross-file/repo references), style checks (imports not at module top level), dead-code detection (never-referenced module-level defs, Python only); report-then-confirm | `x-code-clean [scope in natural language]` |
 | x-code-review | active | Explicit-only: multi-axis code review of uncommitted changes using the code-review subagent cluster (major + sub-N + merger + executor), then apply approved fixes | `x-code-review`; `x-code-review --range <start>..HEAD` |
 | x-grilling | active | Explicit-only: interview the user relentlessly about a plan, decision, or idea until a shared understanding is reached | `x-grilling <topic>` |
 | x-skills | active | Explicit-only: workbench listing this plugin's skills with descriptions and usage | `x-skills`; `x-skills --usage <name>` |
@@ -89,6 +89,7 @@ explicit-only).
 
 | Version | Date | What changed |
 | --- | --- | --- |
+| v0.5.0 | 2026-09-01 | x-code-clean rework: natural-language scope (invocation flags removed, default uncommitted changes), new comment rule for cross-file/cross-repo references (keep constraint/provenance, delete asides and dangling pointers), new Python-only dead-code checker with exemption flags, session-context review step; SKILL size budget raised to 150; t03 rewritten, t06 added |
 | v0.4.0 | 2026-08-27 | New active skill x-better-commit: commit title rules + optional body rules with three modes (commit staged work, --amend last unpushed commit, improve any commit's message in place); registry and README updated |
 | v0.3.0 | 2026-08-19 | Kimi plugin support: new kimi.plugin.json manifest (name/version/skills/interface); new-version.sh syncs all three manifests; verify gate gains the Kimi contract check; t05/t04 updated |
 | v0.2.0 | 2026-08-13 | Three new active skills localized from local agent skills (x-code-review via subagent cluster, x-grilling, x-subagent-orchestration); x-skills workbench lists name/type/description/usage per skill with `--usage <name>` support; registry gained a usage column |

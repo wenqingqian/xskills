@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# t03: checks.py no-inner-import — reports inner imports with parent, clean file is silent
+# t03: checks.py — every registered checker always runs (no selection flags);
+#      inner import reported with parent; def-free clean file is silent;
+#      a scope flag is mandatory
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 . ./lib.sh
@@ -15,27 +17,28 @@ EOF
 cat > "$SB/clean.py" <<'EOF'
 import os
 
-def foo():
-    return os.path
+print(os.path)
 EOF
 
-# --list works
-LIST="$(python3 "$REPO/skills/x-code-clean/scripts/checks.py" --list)" || fail "--list failed"
-assert_output_contains "$LIST" "no-inner-import"
+# no scope flags -> error
+OUT_ERR="$(python3 "$REPO/skills/x-code-clean/scripts/checks.py" 2>&1 || true)"
+assert_output_contains "$OUT_ERR" "provide --range or --files"
 
-# direct "--<checker-id>" form is shorthand for --check <id>
-OUT0="$(python3 "$REPO/skills/x-code-clean/scripts/checks.py" --no-inner-import --files "$SB/inner.py")" \
-  || fail "direct checker flag failed"
-assert_output_contains "$OUT0" "FunctionDef 'foo'"
+# removed checker-selection flags are gone
+OUT_GONE="$(python3 "$REPO/skills/x-code-clean/scripts/checks.py" --check no-inner-import --files "$SB/inner.py" 2>&1 || true)"
+assert_output_contains "$OUT_GONE" "unrecognized arguments"
 
-# inner import reported with parent
-OUT="$(python3 "$REPO/skills/x-code-clean/scripts/checks.py" --check no-inner-import --files "$SB/inner.py")" \
+# inner import reported with parent, no selection needed
+OUT="$(python3 "$REPO/skills/x-code-clean/scripts/checks.py" --files "$SB/inner.py")" \
   || fail "checks.py exited nonzero"
-assert_output_contains "$OUT" "FunctionDef 'foo'"
+assert_output_contains "$OUT" "no-inner-import"
 assert_output_contains "$OUT" "import 'sys' inside FunctionDef 'foo'"
 
-# clean file: empty array
-OUT2="$(python3 "$REPO/skills/x-code-clean/scripts/checks.py" --check no-inner-import --files "$SB/clean.py")" \
+# dead-code runs too, unasked: foo is defined but never referenced
+assert_output_contains "$OUT" "dead-code"
+
+# clean file (no defs, no inner imports): empty array
+OUT2="$(python3 "$REPO/skills/x-code-clean/scripts/checks.py" --files "$SB/clean.py")" \
   || fail "checks.py exited nonzero on clean file"
 assert_output_contains "$OUT2" "[]"
 echo "PASS: t03"

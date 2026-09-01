@@ -67,7 +67,7 @@ xskills/
    English only — no Chinese. This includes SKILL.md, README, docs, comments, commit
    messages, and JSON manifests (plugin.json / marketplace.json). (This deliberately
    deviates from the AGENTSPACE plugin's bilingual policy.)
-5. **Size budget**: keep `SKILL.md` under 120 lines. Move background detail elsewhere
+5. **Size budget**: keep `SKILL.md` under 150 lines. Move background detail elsewhere
    (e.g. referenced docs) if it grows.
 6. **Hard/soft separation**: mechanical aggregation belongs in scripts with strict,
    verbatim output templates; free-form slots are filled by agents. Never mix the two

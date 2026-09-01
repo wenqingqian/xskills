@@ -1,24 +1,24 @@
 ---
 name: x-code-clean
-description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "review comments", "trim comments"); never auto-triggered. When invoked, review and clean up code comments (both `#` and `"""docstrings"""`) and code-style violations (e.g. imports not at module top level) in files or a git commit range, in any language. Removes feedback-driven "why not written some other way" explanations, trims redundant/over-explanatory prose, keeps only non-obvious what/why, and checks import placement.
+description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "trim comments", "dead code", "unused code"); never auto-triggered. When invoked, run three check categories over a scope given in natural language (files, directories, or a git commit range; default: uncommitted changes): comment cleanup (delete feedback-driven why-not explanations, redundant prose, and unnecessary references to other files/projects/repos; keep non-obvious what/why), style checks (e.g. imports not at module top level), and dead-code detection (module-level definitions never referenced in the repo, Python only). Report first; edit only after the user confirms.
 ---
 
 # Code Cleanup
 
-This is an **active** skill: it runs only when the user explicitly invokes
-it (by name or keywords such as "clean up comments" / "trim comments");
-never auto-trigger it from conversation content alone. Review every comment
-in scope and improve it: delete the ones that don't carry information, trim
-the ones that over-explain, keep the ones that state non-obvious facts. Run
-the requested style checkers on the same scope. Output a per-item report
-first; only edit after the user confirms.
+This is an **active** skill: it runs only on explicit invocation (by name or
+keywords such as "clean up comments" / "trim comments" / "dead code"); never
+auto-trigger it from conversation content alone. Three check categories run
+over the scope, all of them, every time:
 
-Works on any language: Python is parsed exactly (tokenize/ast); other
-languages use per-extension comment-marker heuristics — treat those results
-as candidate lists and verify against the real files.
+1. **Comments** — four-tier classification (below); any language: Python is
+   parsed exactly (tokenize/ast), other languages use per-extension
+   heuristics — treat those as candidate lists, verify against real files.
+2. **Style** — registered style checkers (Python only for now).
+3. **Code** — dead-code candidates (Python only for now).
 
-**Read `GUIDE.md` in this skill directory before classifying** — it carries
-worked examples, the assert-vs-example rule, and the pitfalls.
+Output a per-item report first; only edit after the user confirms. **Read
+`GUIDE.md` in this skill directory before classifying** — worked examples,
+the assert-vs-example rule, edge cases, pitfalls.
 
 ## The core rule (the user's criterion)
 It must NOT say **why the code is not written some other way** ("why not
@@ -27,94 +27,97 @@ alternative X") — residue of a past Q&A, noise for every future reader. A
 bare alternative-comparison is feedback-driven → delete.
 
 ## Test-instance information (models, hyper-params, parallel configs)
+Comments citing concrete test instances carry no code semantics and go stale
+→ delete by default. A real config restriction belongs in an `assert` (fails
+loudly, cannot rot) plus at most one short pointer comment. Teaching
+examples with placeholder numbers stay, written relatively ("TP member
+0/1"). Details: GUIDE.md.
 
-Comments citing concrete test instances (model names, hyper-parameters,
-parallel layouts, datasets) carry no code semantics and go stale — delete by
-default. If the code genuinely only works under a specific config, express
-the restriction with an `assert` (fails loudly, cannot rot) and keep at most
-one short comment pointing at it. Teaching examples with placeholder numbers
-are different: keep them, written relatively ("TP member 0/1").
+## References to other files / projects / repos
+Judge every comment that points at another file from **this project's
+standpoint**: keep it only if it creates a constraint or provenance this
+project needs. **Keep (④)**: vendored/ported-code provenance ("copied from
+upstream `x/y.py`, sync on update"); external spec/format contracts ("layout
+follows RFC 1234 §3"); in-repo sync pointers whose target you verified
+exists. **Delete (②)**: informational asides into other projects/repos the
+reader cannot resolve and that constrain nothing here; in-repo references
+whose target no longer exists — dangling, always delete. Verify in-repo
+targets against the working tree; external refs cannot be verified — judge
+necessity only. Edge cases: GUIDE.md.
 
 ## Four-tier classification
-
 1. **① Delete** — feedback-driven "why not alternative X" explanations.
-2. **② Delete** — redundant comments that restate the code or a sibling
-   docstring verbatim, and test-instance citations.
+2. **② Delete** — restates the code or a sibling docstring verbatim,
+   test-instance citations, unnecessary cross-file/cross-repo references.
 3. **③ Trim** — over-long prose: compress to the core what/why, drop
-   defensive hedges and repeated clauses. Multi-paragraph docstrings usually
-   collapse to 1–2 sentences.
-4. **④ Keep / fine-tune** — non-obvious what/why, interface contracts (what
-   a hook must guarantee), section dividers, one-line purpose docstrings,
+   defensive hedges; multi-paragraph docstrings collapse to 1–2 sentences.
+4. **④ Keep / fine-tune** — non-obvious what/why, interface contracts,
+   binding references, section dividers, one-line purpose docstrings,
    license/copyright headers (always keep). Fix only factual errors or
    non-local assumptions.
 
-Docstrings follow the same tiers, with one difference: keep a one-line
-purpose statement on public functions/classes so the API stays readable.
+Docstrings follow the same tiers, but keep a one-line purpose statement on
+public functions/classes so the API stays readable.
 
-## Invocation parameters
+## Scope (no invocation parameters)
+The skill takes **no flags**; the user states the scope in natural language:
+- "these files / this directory" → `--files <f...>`
+- "since commit X" → `--range <start>..HEAD` (git mode)
+- nothing said → the uncommitted changes (`git status` / `git diff`);
+  **state that scope at the top of the report**.
 
-The user may append parameters to the invocation; map them to the scripts:
+**Scope correction (critical)**: `git diff <start>..HEAD` hides lines
+created by the start commit. For a file created inside the range, ask
+whether to review the whole file (recommended) or only diff lines.
 
-| Invocation | Runs |
-| --- | --- |
-| `x-code-clean --list` | `checks.py --list` — list checkers |
-| `x-code-clean --all --files a.py` | `checks.py --all --files a.py` — every checker |
-| `x-code-clean --no-inner-import --files a.py` | `checks.py --check no-inner-import --files a.py` |
-| `... --range <start>..HEAD` | git-mode scope on the same command |
+## Checkers (all registered checkers always run)
+`checks.py` has no checker selection — everything in `scripts/checks/` runs
+every time:
 
-`--<checker-id>` is shorthand for `--check <checker-id>`.
+- `no-inner-import` (style): imports not at module top level.
+- `dead-code` (code): module-level function/class/constant defined in a
+  scope file but never referenced in any repo `.py`; candidates from scope
+  files, references searched repo-wide. Exemption signals (`exported`,
+  `decorated`, `entry-point`, `test-only`, `dynamic-ref`) are reported as
+  flags, never hidden. Name-based matching can miss — verify candidates with
+  your own grep. Details: GUIDE.md.
 
-## Style checkers (optional, on request)
-
-Findings are JSON: `{checker, file, line, column, text, message, parent...}`.
-Checkers only *find*; fixes go through the same report-then-confirm flow.
-Report all findings — the user decides (a `if TYPE_CHECKING:` import may be
-acceptable); never drop a finding with a plausible excuse.
+Checkers only *find*; fixes go through the report-then-confirm flow. Report
+all findings — the user decides; never drop one with a plausible excuse.
 
 ## Workflow
-
-### 1. Define scope
-
-- **Git-range mode**: `git log --oneline <start>..HEAD` (verify linear, no
-  merges) + `git diff --stat <start>..HEAD` for the file list.
-- **File mode**: the user-specified files/directories.
-- **Scope correction (critical)**: `git diff <start>..HEAD` only shows lines
-  modified *after* the start commit — comments created by the start commit
-  are invisible. For a file created inside the range, ask the user whether
-  to review its whole content (recommended) or only the diff lines.
-### 2. Extract the candidate list / run checkers
+### 1. Extract the candidate list / run checkers
 
 ```
-python3 scripts/extract_comments.py --range <start>..HEAD        # git mode
-python3 scripts/extract_comments.py --files a.py b.sh conf.yml   # file mode
+python3 scripts/extract_comments.py --range <start>..HEAD | --files a.py ...
+python3 scripts/checks.py --range <start>..HEAD | --files a.py ...
 ```
 
-Output: JSON items `{file, line, line_end, kind, text}` with
-kind ∈ `full_comment` / `inline_comment` / `docstring` (docstring only for
-Python). Best-effort — treat it as a candidate list and read the actual
-files anyway; non-Python extraction is heuristic (verify against the working
-tree). Then classify each item — the report must cite real file:line and
-real text.
+Extraction is best-effort — read the actual files anyway; the report must
+cite real file:line and real text.
+
+### 2. Session-context review
+Usually invoked right after a task finished in this session. Before
+reporting, re-check every finding against session context: what was just
+built, which definitions await their caller in the next step, which
+references came from the current task. A just-added function awaiting its
+caller is not dead code — annotate, don't propose deletion.
 
 ### 3. Report (default, before any edit)
-
-- For **changes** (tiers ①–③ and checker findings): `file:line` + original
-  text (abridged) + tier/checker + replacement text (verbatim for tier ③
-  trims).
-- For **kept** items (tier ④): one compact line per file listing line
-  numbers and a 3–6 word reason ("non-obvious why", "interface contract",
-  "section divider").
+- State the scope first (files / range / "uncommitted changes").
+- **Changes** (tiers ①–③ and checker findings): `file:line` + original text
+  (abridged) + tier/checker + replacement text (verbatim for ③ trims);
+  dead-code findings carry their exemption flags.
+- **Kept** (④): one compact line per file — line numbers + 3–6 word reason
+  ("non-obvious why", "interface contract", "vendored provenance").
 
 End with a summary count (delete N / trim N / keep N / findings M). Do not
 edit until the user confirms. If the user explicitly says "just fix it",
 skip the report step.
 
 ### 4. Apply and verify
-
 - Edit each accepted item (`Edit` tool, exact matches from the working tree).
-- Syntax gate per language: Python `python3 -m py_compile`; Shell `bash -n`;
-  YAML `python3 -c "import yaml, sys; yaml.safe_load(open(sys.argv[1]))"`;
-  C/C++/others: skip if no toolchain, say so.
-- `git diff` — self-check that only comments/findings changed (no behavior
-  drift).
+- Syntax gate: Python `py_compile`; Shell `bash -n`; YAML `yaml.safe_load`;
+  others: skip if no toolchain, say so.
+- `git diff` — self-check: only comments/findings changed, no behavior drift.
 - Commit only when asked, e.g. `Trim feedback-driven and redundant comments in <area>`.

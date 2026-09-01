@@ -9,8 +9,9 @@ Finding dict fields (all checkers should emit at least): file, line,
 text, message — plus any checker-specific fields (e.g. ``parent``).
 """
 
-from . import no_inner_import
+from . import dead_code, no_inner_import
 
 CHECKERS = {
+    dead_code.CHECKER_ID: dead_code,
     no_inner_import.CHECKER_ID: no_inner_import,
 }

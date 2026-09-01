@@ -1,8 +1,9 @@
 # x-code-clean Classification Guide
 
 Full standards behind `SKILL.md`: the core rule's edge cases, the
-recognizable feedback-driven phrasing, and the pitfalls. Read this before
-classifying comments when the case is not obvious.
+recognizable feedback-driven phrasing, the cross-file reference cases, the
+dead-code caveats, and the pitfalls. Read this before classifying comments
+when the case is not obvious.
 
 ## The core rule in detail
 
@@ -66,6 +67,65 @@ their numbers are placeholders, not test instances. Keep them, but write
 them relatively ("TP member 0/1") rather than absolutely ("rank 2/rank 3"),
 and never frame them as "under config X".
 
+## References to other files / projects / repos
+
+The test is always **from this project's standpoint**: does this reference
+create a constraint or provenance *this* project needs? Not "is it
+interesting", not "was it true when written".
+
+Keep (tier ④) — the reference is load-bearing here:
+
+- Vendored/ported-code provenance: "copied from upstream
+  `megatron/core/foo.py`, sync on update" — deleting it severs the sync
+  obligation; nobody will know to re-check upstream.
+- External spec/format contracts: "layout follows RFC 1234 §3" — the reader
+  cannot interpret this file correctly without it.
+- In-repo sync pointers: "must stay in sync with `a/b.py`" — but only after
+  you verified `a/b.py` exists in the working tree.
+
+Delete (tier ②) — the reference constrains nothing here:
+
+- Informational asides into other projects/repos: "similar to the helper in
+  `../other-repo/utils.py`", "the old infra repo did this differently". This
+  project's readers often cannot resolve them, and nothing here breaks if
+  the target changes.
+- Dangling in-repo references: the target file/symbol no longer exists.
+  Always delete — a reference that cannot be followed cannot be necessary.
+  (If the *constraint* is still real but the target moved, fix the pointer
+  instead of deleting.)
+
+Verify every in-repo reference against the working tree before classifying
+(check the file exists; if it names a symbol, grep the symbol). External
+references cannot be verified — judge necessity only, and when in doubt ask
+the user rather than silently keeping.
+
+The session-context pass applies here too: a reference to a repo or file
+that was part of *this session's* task (e.g. the upstream you just ported
+from) is usually provenance, not an aside.
+
+## Dead-code findings (the `dead-code` checker)
+
+The checker is name-based: a same-named symbol anywhere in the repo masks a
+dead definition (false negative), and dynamic consumption hides real uses
+(false positive). Both directions are absorbed by process, not by the
+script:
+
+- Every finding is a **candidate**. Before putting it in the report, verify
+  with your own grep: search the identifier across the repo (including
+  strings, configs, CLI entry tables, docs that generate calls).
+- Exemption flags mean "probably alive, user decides": `exported` (in
+  `__all__` — public API), `decorated` (registration-style decorators such
+  as pytest fixtures / CLI commands consume invisibly), `entry-point`
+  (`main`), `test-only` (only tests reference it — maybe production code
+  lost its caller, maybe a test helper), `dynamic-ref` (name appears in a
+  string literal — getattr/registry lookup).
+- Unflagged findings are the strong candidates; still verify once.
+- Deleting a dead function can orphan its private helpers (they were
+  referenced only by it). After applying deletions, re-run `checks.py` once
+  to catch the cascade.
+- Only Python is supported. Do not hand-roll dead-code analysis for other
+  languages; say the category does not cover them.
+
 ## Pitfalls
 
 - Do not "improve" tier-④ comments just to look busy — a good review changes
@@ -75,5 +135,5 @@ and never frame them as "under config X".
   invariants stay. Only the defensive/alternative-comparison prose goes.
 - When in doubt between trim and delete, trim to the factual core — the
   user's rule forbids why-not-alternative, not factual why.
-- Style checkers report, they do not judge: never drop a finding because you
+- Checkers report, they do not judge: never drop a finding because you
   can imagine a justification. The report lists it; the user decides.

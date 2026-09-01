@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Run code-cleanup checkers over files or a git commit range.
+"""Run all code-cleanup checkers over files or a git commit range.
 
 Usage:
-  python3 scripts/checks.py --check no-inner-import --files a.py b.py
-  python3 scripts/checks.py --check no-inner-import --range abc123..HEAD
-  python3 scripts/checks.py --all --files ...
+  python3 scripts/checks.py --files a.py b.py
+  python3 scripts/checks.py --range abc123..HEAD
 
-Checkers live in scripts/checks/ and register themselves in the registry
-(see scripts/checks/__init__.py).  Output is JSON:
-  [{"file", "line", "column", "text", "message", ...}, ...]
+Every checker registered in scripts/checks/ runs on every invocation —
+the skill decides the scope, never which checkers run.  Output is JSON:
+  [{"checker", "file", "line", "column", "text", "message", ...}, ...]
 
 Git mode reads the *end* commit's snapshot (`git show <end>:<file>`), so
-line numbers match the diff; the working tree is never read in that mode.
+line numbers match the diff; per-file sources are never read from the
+working tree in that mode (repo-wide checkers may still consult it).
 """
 
 import argparse
@@ -61,38 +61,13 @@ def _git_mode_files(rng):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--check", nargs="+", help="checker ids to run")
-    ap.add_argument("--all", action="store_true", help="run every registered checker")
-    ap.add_argument("--list", action="store_true", help="list registered checkers and exit")
     ap.add_argument("--range", help="git commit range, e.g. abc123..HEAD")
     ap.add_argument("--files", nargs="+", help="files to scan")
-    # Map "--<checker-id>" (e.g. --no-inner-import) onto --check <id> so a
-    # checker can be selected directly, without knowing the --check flag.
-    argv = []
-    for a in sys.argv[1:]:
-        if a.startswith("--") and a[2:] in CHECKERS:
-            argv += ["--check", a[2:]]
-        else:
-            argv.append(a)
-    args = ap.parse_args(argv)
+    args = ap.parse_args()
 
-    if args.list:
-        for cid, mod in sorted(CHECKERS.items()):
-            desc = getattr(mod, "DESCRIPTION", "")
-            print(f"{cid}: {desc}")
-        return
-
-    if args.all:
-        ids = list(CHECKERS)
-    else:
-        ids = args.check or []
-    for cid in ids:
-        if cid not in CHECKERS:
-            ap.error(f"unknown checker '{cid}'; use --list to see available checkers")
-    if not ids:
-        ap.error("provide --check <ids> or --all")
     if not args.range and not args.files:
         ap.error("provide --range or --files")
+    ids = list(CHECKERS)
 
     findings = []
     if args.range:

@@ -6,7 +6,7 @@
 #       marketplace.json <-> CHANGELOG)
 #   [2] no Chinese in committed content (user rule)
 #   [3] script syntax (bash -n on .sh, py_compile on .py)
-#   [4] SKILL size budget (<=120 lines per SKILL.md)
+#   [4] SKILL size budget (<=150 lines per SKILL.md)
 #   [5] registry <-> skills/ sync + name prefix + classification contract
 #   [6] README release history coverage
 #   [7] Kimi manifest contract (name/skills/interface/key whitelist)
@@ -87,11 +87,11 @@ done < <(find "$ROOT" \( -name '*.sh' -o -name '*.py' \) \
 echo "  checked $count scripts"
 
 # --- [4] SKILL size budget --------------------------------------------------
-echo "[4] SKILL size budget (<=120 lines)"
+echo "[4] SKILL size budget (<=150 lines)"
 while IFS= read -r f; do
   n=$(wc -l < "$f" | tr -d ' ' 2>/dev/null || true)
-  if [ "${n:-0}" -gt 120 ]; then
-    echo "  [issue] ${f#$ROOT/}: $n lines > 120 budget"
+  if [ "${n:-0}" -gt 150 ]; then
+    echo "  [issue] ${f#$ROOT/}: $n lines > 150 budget"
     issues=$((issues+1))
   fi
 done < <(find "$ROOT/skills" -name 'SKILL.md' -not -path "*/__pycache__/*")

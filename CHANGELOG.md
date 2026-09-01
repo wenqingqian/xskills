@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.5.0 (2026-09-01)
+
+- x-code-clean rework — now three check categories over one scope: comment
+  cleanup, style checks, and the new dead-code detection.
+- Invocation parameters removed: the skill takes no flags; the user states
+  the scope in natural language (files/directories or "since commit X") and
+  the agent maps it onto `--files`/`--range`; default is the uncommitted
+  changes, stated at the top of the report. `checks.py` dropped
+  `--check`/`--all`/`--list` and always runs every registered checker.
+- Comment cleanup gains a cross-file/cross-repo reference rule: keep only
+  references that create a constraint or provenance this project needs
+  (vendored-code provenance, external spec contracts, verified in-repo sync
+  pointers); delete informational asides into other projects/repos;
+  dangling in-repo references are always deleted. GUIDE.md carries the
+  worked cases.
+- New `dead-code` checker (Python only): module-level functions/classes/
+  constants defined in scope files but never referenced in any repo `.py`;
+  candidates from scope files, references searched repo-wide; exemption
+  signals (`exported`, `decorated`, `entry-point`, `test-only`,
+  `dynamic-ref`) are reported as flags, never hidden.
+- New workflow step "session-context review": findings are re-checked
+  against what this session just built (e.g. a function awaiting its caller
+  is not dead code) before the report.
+- verify-release.sh SKILL.md size budget raised from 120 to 150 lines;
+  DEVELOPMENT.md synced.
+- Tests: t03 rewritten for the flagless checks.py; new t06 covers the
+  dead-code checker.
+
 ## v0.4.0 (2026-08-27)
 
 - New active skill `x-better-commit`: draft or rewrite a git commit
