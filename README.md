@@ -89,6 +89,7 @@ explicit-only).
 
 | Version | Date | What changed |
 | --- | --- | --- |
+| v0.7.0 | 2026-09-02 | x-code-clean no-inner-import exemption flags: legitimate inner imports (optional-dep try/except, lazy activation, test-local idioms, circular-import guards, heavy-deferral in CLI entries, TYPE_CHECKING) are downgraded to exemption candidates — reported with flags, never hidden, no hoist proposed; report groups violations vs exempted; GUIDE.md worked cases; t07 added |
 | v0.6.0 | 2026-09-01 | x-better-commit hardening: zero-context reader principle, unconditionally mandatory type prefix (escape hatch removed), one-outcome titles with zero deliverable enumeration, no meta-narration, no post-hoc commit splitting |
 | v0.5.0 | 2026-09-01 | x-code-clean rework: natural-language scope (invocation flags removed, default uncommitted changes), new comment rule for cross-file/cross-repo references (keep constraint/provenance, delete asides and dangling pointers), new Python-only dead-code checker with exemption flags, session-context review step; SKILL size budget raised to 150; t03 rewritten, t06 added |
 | v0.4.0 | 2026-08-27 | New active skill x-better-commit: commit title rules + optional body rules with three modes (commit staged work, --amend last unpushed commit, improve any commit's message in place); registry and README updated |

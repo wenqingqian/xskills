@@ -126,6 +126,65 @@ script:
 - Only Python is supported. Do not hand-roll dead-code analysis for other
   languages; say the category does not cover them.
 
+## Inner-import findings (the `no-inner-import` checker)
+
+The checker reports every import that is not at module top level, then
+downgrades the legitimate patterns to **exemption candidates**: they stay
+in the report (flags, never hidden), carry their flag, and get no hoist
+proposal — the user still decides. Unflagged findings are violations.
+
+The six structural signals and their real-code shapes:
+
+- `optional-dep` — probing for a dependency that may be absent:
+  `try: from modelopt.torch import ...` / `except ImportError:` with a
+  silent fallback (set to None, log, pass). The handler does NOT raise.
+- `lazy-activation` — two shapes: (a) `except ImportError:` that raises
+  an actionable error (`raise RuntimeError("pip install pkg[extra]")`) —
+  the feature is opt-in and fails with instructions when absent; (b) a
+  lazy-contract keyword ("lazy", "on demand", "optional dep",
+  "deferred import", "not require") in the module or enclosing
+  docstring — e.g. a gated `from sga.runtime import build_engine` in a
+  module whose docstring says "stock runs must not require it". The
+  keyword match is a heuristic; read the actual contract before
+  accepting the exemption.
+- `test-local` — the file is a test (`tests/`, `test_*.py`,
+  `conftest.py`), where function-level imports are idiom, or the import
+  alias is a patch target (`import sga.engine as engine_mod` +
+  `mock.patch("engine_mod.build_engine")` — detected via the alias
+  appearing in a string literal of the same file).
+- `circular-guard` — hoisting would close an import cycle: the in-repo
+  target module (transitively, module-level imports only) imports the
+  current module back. Typical shape: a callback/re-entry boundary —
+  `runtime.py` importing the host framework inside a function because
+  the framework calls back into this package via
+  `extra_args_provider`-style hooks; a top-level import would deadlock
+  the interpreter at startup.
+- `heavy-deferral` — a heavy third-party package (torch / transformers /
+  triton family; the list is a constant in the checker, extend it there)
+  imported inside a CLI entry (`main`/`cli` function, `__main__.py`, or
+  the `if __name__ == "__main__"` guard) to keep startup fast.
+- `typing-only` — inside a module-level `if TYPE_CHECKING:` block;
+  never executes at runtime.
+
+What the checker cannot decide (verify before reporting):
+
+- External-target cycles: `circular-guard` resolves only in-repo
+  targets. A function-level import of an external framework at a
+  callback boundary is a circular-guard suspect — annotate it as such
+  instead of proposing a hoist; confirm by checking whether the
+  framework imports this package back (docs, plugin contract, or the
+  callback wiring in this repo).
+- Docstring semantics: a keyword hit is not a contract. If the
+  docstring does not actually declare laziness, drop the flag in your
+  report and treat the finding as a violation.
+- The alias-in-string signal can fire on unrelated prose mentioning
+  `alias.` — check the string is a patch target.
+- Signals compose (a heavy import inside try/except gets several
+  flags); all of them are shown, in checker order.
+
+Never invent an exemption the checker did not signal — same discipline
+as dead-code: the report lists it, the user decides.
+
 ## Pitfalls
 
 - Do not "improve" tier-④ comments just to look busy — a good review changes

@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.7.0 (2026-09-02)
+
+- `x-code-clean` no-inner-import checker: legitimate inner imports are no
+  longer hoist proposals. Structural exemption signals attach a flag and
+  downgrade the finding to an exemption candidate — still reported, never
+  hidden; the user decides (same contract as the dead-code flags).
+  Signals, from real-world review feedback:
+  - `optional-dep`: `try`/`except ImportError` with a silent fallback
+    (probing for an optional dependency).
+  - `lazy-activation`: `except ImportError` raising an actionable error,
+    or a lazy-contract keyword in the module/enclosing docstring
+    (heuristic; the agent verifies the contract).
+  - `test-local`: test files (`tests/`, `test_*.py`, `conftest.py`) or an
+    import alias used as an in-file patch target (mock.patch style).
+  - `circular-guard`: hoisting would close an in-repo import cycle
+    (module-level import graph, BFS from the target back to the current
+    module; external targets are left to agent judgment per GUIDE.md).
+  - `heavy-deferral`: heavy third-party family (torch/transformers/triton
+    and friends, extendable constant) imported inside a CLI entry
+    (`main`/`cli`, `__main__.py`, or the `__name__` guard).
+  - `typing-only`: module-level `if TYPE_CHECKING:` blocks.
+- Report workflow updated: flagged findings group as exempted (flag +
+  reason, no hoist proposal); summary counts violations and exempted
+  separately. GUIDE.md carries the six categories with worked examples
+  and the agent-side verification duties; SKILL.md/SKILLS.md descriptions
+  updated.
+- Tests: new t07 covering all six flags, the never-hidden contract, and
+  the single hoist proposal for an unflagged violation.
+
 ## v0.6.0 (2026-09-01)
 
 - `x-better-commit` title rules hardened after real-world misses:

@@ -1,6 +1,6 @@
 ---
 name: x-code-clean
-description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "trim comments", "dead code", "unused code"); never auto-triggered. When invoked, run three check categories over a scope given in natural language (files, directories, or a git commit range; default: uncommitted changes): comment cleanup (delete feedback-driven why-not explanations, redundant prose, and unnecessary references to other files/projects/repos; keep non-obvious what/why), style checks (e.g. imports not at module top level), and dead-code detection (module-level definitions never referenced in the repo, Python only). Report first; edit only after the user confirms.
+description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "trim comments", "dead code", "unused code"); never auto-triggered. When invoked, run three check categories over a scope given in natural language (files, directories, or a git commit range; default: uncommitted changes): comment cleanup (delete feedback-driven why-not explanations, redundant prose, and unnecessary references to other files/projects/repos; keep non-obvious what/why), style checks (imports not at module top level, with exemption flags for legitimate inner imports), and dead-code detection (module-level definitions never referenced in the repo, Python only). Report first; edit only after the user confirms.
 ---
 
 # Code Cleanup
@@ -74,7 +74,14 @@ whether to review the whole file (recommended) or only diff lines.
 `checks.py` has no checker selection — everything in `scripts/checks/` runs
 every time:
 
-- `no-inner-import` (style): imports not at module top level.
+- `no-inner-import` (style): imports not at module top level. Legitimate
+  patterns are downgraded to exemption candidates with a structural flag —
+  `typing-only`, `optional-dep` (try/except ImportError with fallback),
+  `lazy-activation` (actionable-error raise or lazy-contract docstring),
+  `test-local` (test files; alias patch-targeted in-file),
+  `circular-guard` (hoisting would close an in-repo import cycle),
+  `heavy-deferral` (heavy third-party inside a CLI entry). Flagged items
+  stay in the report — never hidden. Details: GUIDE.md.
 - `dead-code` (code): module-level function/class/constant defined in a
   scope file but never referenced in any repo `.py`; candidates from scope
   files, references searched repo-wide. Exemption signals (`exported`,
@@ -107,11 +114,13 @@ caller is not dead code — annotate, don't propose deletion.
 - State the scope first (files / range / "uncommitted changes").
 - **Changes** (tiers ①–③ and checker findings): `file:line` + original text
   (abridged) + tier/checker + replacement text (verbatim for ③ trims);
-  dead-code findings carry their exemption flags.
+  dead-code findings carry their exemption flags; no-inner-import findings
+  with flags are listed as exempted (flag + reason, no hoist proposal).
 - **Kept** (④): one compact line per file — line numbers + 3–6 word reason
   ("non-obvious why", "interface contract", "vendored provenance").
 
-End with a summary count (delete N / trim N / keep N / findings M). Do not
+End with a summary count (delete N / trim N / keep N / violations M /
+exempted K). Do not
 edit until the user confirms. If the user explicitly says "just fix it",
 skip the report step.
 
