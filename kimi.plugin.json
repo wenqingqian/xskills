@@ -1,6 +1,6 @@
 {
   "name": "xskills",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Personal skill collection managed as a plugin: every skill is strictly classified as passive (agent auto-triggers via description) or active (explicit invocation only, with an explicit-only description prefix). Includes a workbench skill (x-skills) that lists the plugin's skills.",
   "author": {
     "name": "wenqingqian",

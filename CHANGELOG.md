@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.6.0 (2026-09-01)
+
+- `x-better-commit` title rules hardened after real-world misses:
+  - Zero-context reader principle: the title and body are written for
+    someone who knows only the repository; session-local shorthand
+    (review-finding IDs like "R1-R8", "review leftovers", "pre-surgery")
+    is banned everywhere. Public issue numbers remain the only allowed
+    outside reference and live in the body footer.
+  - Type prefix unconditionally mandatory: the old "follow the repo's
+    existing vocabulary" escape hatch let agents drop `feat:` in repos
+    with non-conventional logs. Repo convention may now adjust only the
+    type set and scope usage.
+  - One outcome, judged by grammar position rather than symbol: no
+    separator may join two verb-bearing clauses, and deliverable
+    enumeration in the title is banned outright. Remediation order:
+    umbrella rewrite first, dominant-change-plus-body second, and never
+    splitting an already-made commit (split advice only while drafting).
+  - Meta-narration banned: file counts ("7 files"), "part N/M", and
+    "pre-/post-*" sequence markers no longer appear in titles.
+
 ## v0.5.0 (2026-09-01)
 
 - x-code-clean rework — now three check categories over one scope: comment

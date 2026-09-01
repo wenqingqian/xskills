@@ -51,7 +51,7 @@ xskills/
 
 | name | type | description | usage |
 | --- | --- | --- | --- |
-| x-better-commit | active | Explicit-only: draft or rewrite a git commit message (title + body) from the staged diff or an existing commit — type-prefixed imperative title, optional why-over-how body — then commit or amend | `x-better-commit`; `x-better-commit --amend`; `x-better-commit <rev>` |
+| x-better-commit | active | Explicit-only: draft or rewrite a git commit message (title + body) from the staged diff or an existing commit — one-outcome type-prefixed title a repo-only reader can parse, opt-in why-over-how body — then commit or amend | `x-better-commit`; `x-better-commit --amend`; `x-better-commit <rev>` |
 | x-code-clean | active | Explicit-only: three check categories over a natural-language scope (default uncommitted changes): comment cleanup (feedback-driven why-not, redundant prose, unnecessary cross-file/repo references), style checks (imports not at module top level), dead-code detection (never-referenced module-level defs, Python only); report-then-confirm | `x-code-clean [scope in natural language]` |
 | x-code-review | active | Explicit-only: multi-axis code review of uncommitted changes using the code-review subagent cluster (major + sub-N + merger + executor), then apply approved fixes | `x-code-review`; `x-code-review --range <start>..HEAD` |
 | x-grilling | active | Explicit-only: interview the user relentlessly about a plan, decision, or idea until a shared understanding is reached | `x-grilling <topic>` |
@@ -89,6 +89,7 @@ explicit-only).
 
 | Version | Date | What changed |
 | --- | --- | --- |
+| v0.6.0 | 2026-09-01 | x-better-commit hardening: zero-context reader principle, unconditionally mandatory type prefix (escape hatch removed), one-outcome titles with zero deliverable enumeration, no meta-narration, no post-hoc commit splitting |
 | v0.5.0 | 2026-09-01 | x-code-clean rework: natural-language scope (invocation flags removed, default uncommitted changes), new comment rule for cross-file/cross-repo references (keep constraint/provenance, delete asides and dangling pointers), new Python-only dead-code checker with exemption flags, session-context review step; SKILL size budget raised to 150; t03 rewritten, t06 added |
 | v0.4.0 | 2026-08-27 | New active skill x-better-commit: commit title rules + optional body rules with three modes (commit staged work, --amend last unpushed commit, improve any commit's message in place); registry and README updated |
 | v0.3.0 | 2026-08-19 | Kimi plugin support: new kimi.plugin.json manifest (name/version/skills/interface); new-version.sh syncs all three manifests; verify gate gains the Kimi contract check; t05/t04 updated |
