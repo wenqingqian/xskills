@@ -13,11 +13,13 @@ Two modes:
                                 (working-tree content).
 
 Output is JSON: [{"file", "line", "line_end", "kind", "text"}, ...]
-kind is one of full_comment / inline_comment / docstring (docstring only
-reported for Python).
+kind is one of full_comment / inline_comment / docstring / desc_string
+(docstring and desc_string only reported for Python; desc_string is a plain
+string literal bound to a documentation-carrying name, e.g. help=/description=).
 
 Language coverage:
-  - Python: exact via tokenize (strings that are docstrings are grouped).
+  - Python: exact via tokenize (docstrings and whitelisted descriptive
+    strings are grouped).
   - Everything else: per-extension comment-marker heuristics (line markers
     like # // --, block pairs like /* */) with a block-comment state machine.
     Heuristics cannot tell a marker inside a string literal from a real
@@ -76,6 +78,14 @@ LANG_COMMENT_STYLES = {
 
 FALLBACK_STYLE = (["#", "//"], [("/*", "*/")])
 
+# Assignment-target names (lowercase compare) whose plain string value is
+# user-facing documentation — the string twin of a comment.  Extend here,
+# not in the classifier.
+DESC_STRING_PARAMS = frozenset({
+    "help", "description", "doc", "__doc__", "epilog", "usage", "title",
+    "comment", "note", "notes", "summary", "about",
+})
+
 
 def extract_from_python(src, added_lines=None):
     items = []
@@ -84,6 +94,11 @@ def extract_from_python(src, added_lines=None):
         toks = list(tokenize.generate_tokens(io.StringIO(src).readline))
     except (tokenize.TokenError, IndentationError):
         return items
+    # Lookback state for `NAME = STRING` (kwarg or assignment).  Only a
+    # plain '=' sets after_eq — '==' and ':=' are distinct OP tokens, so
+    # comparisons and walrus never match.
+    last_name = None
+    after_eq = False
     for tok in toks:
         if tok.type == tokenize.COMMENT:
             line = tok.start[0]
@@ -92,18 +107,43 @@ def extract_from_python(src, added_lines=None):
             prefix = lines[line - 1][: tok.start[1]].strip() if line - 1 < len(lines) else ""
             kind = "inline_comment" if prefix else "full_comment"
             items.append({"line": line, "line_end": line, "kind": kind, "text": tok.string})
-        elif tok.type == tokenize.STRING:
+            # A comment sitting between `=` and the string must not reset
+            # the lookback (e.g. `help=  # note\n    "text"`).
+            continue
+        if tok.type in (tokenize.NL, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT):
+            continue
+        if tok.type == tokenize.STRING:
             start, end = tok.start[0], tok.end[0]
-            if added_lines is not None:
-                if not any(l in added_lines for l in range(start, end + 1)):
-                    continue
-            if not tok.string.strip().startswith(('"""', "'''")):
-                continue
-            line_text = lines[start - 1] if start - 1 < len(lines) else ""
-            if line_text[: tok.start[1]].strip() == "":
-                items.append(
-                    {"line": start, "line_end": end, "kind": "docstring", "text": tok.string}
-                )
+            report = added_lines is None or any(l in added_lines for l in range(start, end + 1))
+            appended = False
+            if report and tok.string.strip().startswith(('"""', "'''")):
+                line_text = lines[start - 1] if start - 1 < len(lines) else ""
+                if line_text[: tok.start[1]].strip() == "":
+                    items.append(
+                        {"line": start, "line_end": end, "kind": "docstring", "text": tok.string}
+                    )
+                    appended = True
+            if not appended and report:
+                # desc_string: plain literal (no f/b/r prefix — interpolated
+                # or non-text values are functional, not prose) bound to a
+                # whitelisted documentation name.
+                if (
+                    after_eq
+                    and last_name is not None
+                    and last_name.lower() in DESC_STRING_PARAMS
+                    and tok.string[:1] in ("'", '"')
+                ):
+                    items.append(
+                        {"line": start, "line_end": end, "kind": "desc_string", "text": tok.string}
+                    )
+        if tok.type == tokenize.NAME:
+            last_name = tok.string
+            after_eq = False
+        elif tok.type == tokenize.OP:
+            after_eq = tok.string == "="
+        else:
+            last_name = None
+            after_eq = False
     items.sort(key=lambda x: x["line"])
     return items
 

@@ -1,6 +1,6 @@
 ---
 name: x-code-clean
-description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "trim comments", "dead code", "unused code"); never auto-triggered. When invoked, run three check categories over a scope given in natural language (files, directories, or a git commit range; default: uncommitted changes): comment cleanup (delete feedback-driven why-not explanations, redundant prose, and unnecessary references to other files/projects/repos; keep non-obvious what/why), style checks (imports not at module top level, with exemption flags for legitimate inner imports), and dead-code detection (module-level definitions never referenced in the repo, Python only). Report first; edit only after the user confirms.
+description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "trim comments", "dead code", "unused code"); never auto-triggered. When invoked, run three check categories over a scope given in natural language (files, directories, or a git commit range; default: uncommitted changes): comment cleanup (delete feedback-driven why-not explanations, redundant prose, and unnecessary references to other files/projects/repos; keep non-obvious what/why; also covers Python descriptive strings — docstrings and whitelisted help/description-style literals, e.g. argparse help=), style checks (imports not at module top level, with exemption flags for legitimate inner imports), and dead-code detection (module-level definitions never referenced in the repo, Python only). Report first; edit only after the user confirms.
 ---
 
 # Code Cleanup
@@ -10,9 +10,11 @@ keywords such as "clean up comments" / "trim comments" / "dead code"); never
 auto-trigger it from conversation content alone. Three check categories run
 over the scope, all of them, every time:
 
-1. **Comments** — four-tier classification (below); any language: Python is
-   parsed exactly (tokenize/ast), other languages use per-extension
-   heuristics — treat those as candidate lists, verify against real files.
+1. **Comments** — four-tier classification (below); covers comments,
+   docstrings, and descriptive strings (help/description-style literals);
+   any language: Python is parsed exactly (tokenize/ast), other languages
+   use per-extension heuristics — treat those as candidate lists, verify
+   against real files (including their doc-bearing string constructs).
 2. **Style** — registered style checkers (Python only for now).
 3. **Code** — dead-code candidates (Python only for now).
 
@@ -58,6 +60,18 @@ necessity only. Edge cases: GUIDE.md.
 
 Docstrings follow the same tiers, but keep a one-line purpose statement on
 public functions/classes so the API stays readable.
+
+Descriptive strings follow the same tiers too: Python-wise, any plain
+string literal bound to a whitelisted documentation name — `help`,
+`description`, `doc`, `__doc__`, `epilog`, `usage`, `title`, `comment`,
+`note`/`notes`, `summary`, `about` (extractor kind `desc_string`). Two
+guardrails, because strings are runtime content: functional strings
+(raise/print/log messages, prompts, UI/i18n values) are always ④ keep,
+even when they explain why; and every proposed desc_string edit is
+annotated "changes runtime output (CLI help / docs)". Non-Python
+languages have no string extraction — check their doc-bearing constructs
+(cobra `Short:`/`Long:`, yargs `.describe()`, commander `.description()`)
+during the read pass. Details and worked examples: GUIDE.md.
 
 ## Scope (no invocation parameters)
 The skill takes **no flags**; the user states the scope in natural language:
@@ -115,7 +129,8 @@ caller is not dead code — annotate, don't propose deletion.
 - **Changes** (tiers ①–③ and checker findings): `file:line` + original text
   (abridged) + tier/checker + replacement text (verbatim for ③ trims);
   dead-code findings carry their exemption flags; no-inner-import findings
-  with flags are listed as exempted (flag + reason, no hoist proposal).
+  with flags are listed as exempted (flag + reason, no hoist proposal);
+  desc_string findings carry the runtime-output annotation.
 - **Kept** (④): one compact line per file — line numbers + 3–6 word reason
   ("non-obvious why", "interface contract", "vendored provenance").
 
@@ -128,5 +143,7 @@ skip the report step.
 - Edit each accepted item (`Edit` tool, exact matches from the working tree).
 - Syntax gate: Python `py_compile`; Shell `bash -n`; YAML `yaml.safe_load`;
   others: skip if no toolchain, say so.
-- `git diff` — self-check: only comments/findings changed, no behavior drift.
+- `git diff` — self-check: only comments/findings changed, no behavior drift;
+  desc_string text edits are the expected exception (they change CLI/doc
+  output by design).
 - Commit only when asked, e.g. `Trim feedback-driven and redundant comments in <area>`.

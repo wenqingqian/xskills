@@ -103,6 +103,53 @@ The session-context pass applies here too: a reference to a repo or file
 that was part of *this session's* task (e.g. the upstream you just ported
 from) is usually provenance, not an aside.
 
+## Descriptive strings (help / description-style literals)
+
+Comments and docstrings are not the only user-facing prose in a file.
+A plain string literal bound to a documentation-carrying name is the same
+kind of text with the same staleness failure modes, so it is in scope:
+
+- Python (exact, via `extract_comments.py`): a string literal whose
+  assignment target or keyword name is whitelisted — `help`,
+  `description`, `doc`, `__doc__`, `epilog`, `usage`, `title`, `comment`,
+  `note`, `notes`, `summary`, `about` (constant `DESC_STRING_PARAMS` in
+  the extractor; extend there, never in the classifier). Reported as
+  kind `desc_string`. Typical shapes: `add_argument("--x", help="...")`,
+  `parser.description = "..."`, `EPILOG = """..."""` when the name itself
+  is whitelisted.
+- Other languages (no lexer in the extractor): check during the read
+  pass. Common shapes: cobra `Short:`/`Long:`/`Example`, yargs
+  `.describe()`, commander `.description()`, clap `#[doc = ""]`/`about`,
+  struct tags carrying docs.
+
+Classification is the same four tiers — help text is written for future
+users exactly like a comment and goes stale the same way:
+
+- `help="batch size; not dynamic batching — OOM in early tests"`
+  → tier ①: feedback residue → `help="batch size."`
+- A test-instance citation inside help ("verified with the 4b config")
+  → tier ② delete, same rule as in comments.
+- Over-long help/epilog prose → tier ③ compress to the factual core.
+
+Two guardrails, because unlike comments a string is runtime content:
+
+- **Functional strings are never prose.** `raise`/`print`/log messages,
+  prompts, UI and i18n values are ④ keep — always, even when they
+  explain why. Their audience is the running program's user, not the
+  code reader, and editing them changes behavior. Only whitelisted names
+  (and the obvious doc-bearing constructs above) enter classification.
+- **Report the blast radius.** Every proposed desc_string edit is
+  annotated "changes runtime output (CLI help / docs)"; the user
+  confirms with that in view.
+
+Extractor limits (best-effort by design; the read pass is the net):
+values wrapped in parentheses or moved to the next line, implicit
+concatenation (`"a" "b"` captures only the first part), and prefixed
+literals (`f""`/`b""`/`r""` — interpolated/byte content is functional
+anyway) are not auto-extracted; dict values (`{"help": "..."}`) and
+non-whitelisted names are out of scope on purpose. Annotated
+assignments (`usage: str = "..."`) are not matched either.
+
 ## Dead-code findings (the `dead-code` checker)
 
 The checker is name-based: a same-named symbol anywhere in the repo masks a

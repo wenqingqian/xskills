@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.8.0 (2026-09-05)
+
+- `x-code-clean` comment scope now covers Python descriptive strings: a
+  plain string literal bound to a whitelisted documentation name
+  (`help`, `description`, `doc`, `__doc__`, `epilog`, `usage`, `title`,
+  `comment`, `note`/`notes`, `summary`, `about` — argparse `help=` being
+  the motivating case) is extracted as kind `desc_string` and classified
+  by the same four tiers as comments and docstrings.
+- Two strings-specific guardrails: functional strings (raise/print/log
+  messages, prompts, UI/i18n values) are always kept, even when they
+  explain why — their audience is the running program's user, not the
+  code reader; and every proposed desc_string edit is annotated
+  "changes runtime output (CLI help / docs)", with the apply-step
+  self-check treating desc_string text edits as the expected
+  behavior-output exception.
+- Non-Python languages keep heuristic comment extraction only (no string
+  lexer); GUIDE.md lists the doc-bearing constructs to check in the read
+  pass instead (cobra `Short:`/`Long:`, yargs `.describe()`, commander
+  `.description()`), along with the whitelist and the known extractor
+  limits (parenthesized/concatenated/prefixed literals, annotated
+  assignments).
+- Tests: new t08 covering the whitelist binding shapes (kwarg, attribute
+  and constant assignment, triple-quoted constant) and the
+  functional-string exclusions (error messages, f/b/r prefixes, dict
+  values, non-whitelisted names, annotated assignments).
+
 ## v0.7.0 (2026-09-02)
 
 - `x-code-clean` no-inner-import checker: legitimate inner imports are no
