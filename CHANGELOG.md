@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.9.0 (2026-09-07)
+
+- `x-code-clean` comment review re-architected from script extraction to a
+  subagent fan-out. The old `extract_comments.py` (Python tokenize + 30+
+  extension comment-marker heuristics) is deleted along with its tests
+  (t01/t02/t08): subagents read whole files anyway, so best-effort
+  extraction added maintenance without value. All non-binary text files
+  are now in scope (code, configs, docs).
+- Fan-out mechanism: the main agent partitions scope files 5–10 per
+  read-only `Explore` subagent (sized by file, default 8, no count cap)
+  and spawns them in parallel with a self-contained template (rules
+  digest + GUIDE.md path + structured findings). Line scoping for
+  range/uncommitted modes comes from the new `changed_lines.py` (diff
+  hunk → added-line sets; created files reported whole; binary sniffing;
+  git failures fail loudly) — new t01 covers both modes.
+- Verification duties: every subagent finding is grep-verified against
+  the real file:line by the main agent before it enters the report, and
+  the session-context review stays with the main agent. Report format
+  unchanged.
+- Doc-prose policy: documentation files are fully reviewed, but their
+  prose findings are report-only — each edit requires explicit itemized
+  approval, even in "just fix it" mode.
+- New residue rules (both ② delete by default, from real-world use):
+  - Date stamps ("written 2026-09-05"): git blame is the database for
+    when. Exceptions: license/copyright headers (always keep); dates
+    bound to a live obligation ("compat shim removable after 2026-06").
+  - Skill/session references ("modified per x-grilling"): process
+    history lives in git blame + commit body. Strip-the-attribution
+    rule: a cited comment with a real in-code reason keeps the reason,
+    re-judged on its own merits.
+- The v0.8.0 descriptive-strings whitelist survives without the script:
+  subagents apply it by reading (help/description/doc/__doc__/epilog/
+  usage/title/comment/note(s)/summary/about); functional strings
+  (raise/print/log, prompts) stay untouchable; edits annotated as
+  changing runtime output.
+- SKILL.md rewritten within the 150-line budget (mechanism details
+  pushed to GUIDE.md); GUIDE.md gains the spawn template, date/skill
+  citation worked examples, and new pitfalls; SKILLS.md/README updated.
+
 ## v0.8.0 (2026-09-05)
 
 - `x-code-clean` comment scope now covers Python descriptive strings: a

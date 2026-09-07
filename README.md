@@ -25,10 +25,11 @@ xskills/
 ├── skills/
 │   ├── x-better-commit/  # active — commit message title + body rules (draft / rewrite)
 │   │   └── SKILL.md
-│   ├── x-code-clean/     # active — comment cleanup + style + dead-code checkers (explicit invocation only)
+│   ├── x-code-clean/     # active — comment cleanup (subagent fan-out) + style + dead-code checkers (explicit invocation only)
 │   │   ├── SKILL.md
+│   │   ├── GUIDE.md
 │   │   └── scripts/
-│   │       ├── extract_comments.py
+│   │       ├── changed_lines.py
 │   │       ├── checks.py
 │   │       └── checks/   # checker registry (add a checker = 1 file + 1 registration line)
 │   ├── x-code-review/    # active — multi-axis review via subagent cluster (SKILL.md + GUIDE.md)
@@ -52,7 +53,7 @@ xskills/
 | name | type | description | usage |
 | --- | --- | --- | --- |
 | x-better-commit | active | Explicit-only: draft or rewrite a git commit message (title + body) from the staged diff or an existing commit — one-outcome type-prefixed title a repo-only reader can parse, opt-in why-over-how body — then commit or amend | `x-better-commit`; `x-better-commit --amend`; `x-better-commit <rev>` |
-| x-code-clean | active | Explicit-only: three check categories over a natural-language scope (default uncommitted changes): comment cleanup (feedback-driven why-not, redundant prose, unnecessary cross-file/repo references), style checks (imports not at module top level), dead-code detection (never-referenced module-level defs, Python only); report-then-confirm | `x-code-clean [scope in natural language]` |
+| x-code-clean | active | Explicit-only: three check categories over a natural-language scope ("this commit", "the whole repo", default uncommitted changes): comment cleanup fanned out to parallel read-only subagents (5–10 text files each; four tiers over comments, docstrings, descriptive help-style strings, doc prose report-only; deletes why-not residue, date stamps, skill/session citations), style checks (imports not at module top level), dead-code detection (never-referenced module-level defs, Python only); findings verified and reported before any edit | `x-code-clean [scope in natural language]` |
 | x-code-review | active | Explicit-only: multi-axis code review of uncommitted changes using the code-review subagent cluster (major + sub-N + merger + executor), then apply approved fixes | `x-code-review`; `x-code-review --range <start>..HEAD` |
 | x-grilling | active | Explicit-only: interview the user relentlessly about a plan, decision, or idea until a shared understanding is reached | `x-grilling <topic>` |
 | x-skills | active | Explicit-only: workbench listing this plugin's skills with descriptions and usage | `x-skills`; `x-skills --usage <name>` |
@@ -89,6 +90,7 @@ explicit-only).
 
 | Version | Date | What changed |
 | --- | --- | --- |
+| v0.9.0 | 2026-09-07 | x-code-clean comment review re-architected: script extraction (extract_comments.py, t01/t02/t08) replaced by parallel read-only subagent fan-out (5–10 text files each, self-contained template, all non-binary text files in scope incl. doc prose which is report-only); new changed_lines.py for range/working-tree line scoping (new t01); main-agent grep verification + session-context review; new ②-residue rules for date stamps (git blame is the database; license headers and live-obligation dates kept) and skill/session citations (strip attribution, keep real reasons) |
 | v0.8.0 | 2026-09-05 | x-code-clean comment scope extended to Python descriptive strings: plain string literals bound to whitelisted doc names (help/description/doc/__doc__/epilog/usage/title/comment/note(s)/summary/about; e.g. argparse help=) are extracted as desc_string and classified by the same four tiers; functional strings (raise/print/log messages, prompts, UI values) always kept; every desc_string edit annotated "changes runtime output"; non-Python doc-bearing constructs checked in the read pass; t08 added |
 | v0.7.0 | 2026-09-02 | x-code-clean no-inner-import exemption flags: legitimate inner imports (optional-dep try/except, lazy activation, test-local idioms, circular-import guards, heavy-deferral in CLI entries, TYPE_CHECKING) are downgraded to exemption candidates — reported with flags, never hidden, no hoist proposed; report groups violations vs exempted; GUIDE.md worked cases; t07 added |
 | v0.6.0 | 2026-09-01 | x-better-commit hardening: zero-context reader principle, unconditionally mandatory type prefix (escape hatch removed), one-outcome titles with zero deliverable enumeration, no meta-narration, no post-hoc commit splitting |

@@ -2,8 +2,9 @@
 
 Full standards behind `SKILL.md`: the core rule's edge cases, the
 recognizable feedback-driven phrasing, the cross-file reference cases, the
-dead-code caveats, and the pitfalls. Read this before classifying comments
-when the case is not obvious.
+subagent spawn template, the descriptive-string whitelist, the dead-code
+caveats, and the pitfalls. Read this before classifying comments when the
+case is not obvious.
 
 ## The core rule in detail
 
@@ -67,6 +68,33 @@ their numbers are placeholders, not test instances. Keep them, but write
 them relatively ("TP member 0/1") rather than absolutely ("rank 2/rank 3"),
 and never frame them as "under config X".
 
+## Dates and process/skill citations
+
+Git blame answers "when was this written / who last touched it" permanently
+and accurately; the commit message answers "why" (that is what x-better-
+commit's body rules are for). A comment copy of either does not stay
+current and reads as noise, so both go by ②:
+
+- Date stamps — "created 2026-09-05", "updated last week", "2025 version" —
+  delete. They imply the code has not changed since, which is usually
+  false.
+- Skill/session references — "modified per x-grilling", "applied the
+  code-review suggestion", "based on this morning's agent session" —
+  delete. Future readers cannot resolve which conversation that was; the
+  process history lives in git blame and the commit body.
+
+Exceptions (keep, ④):
+
+- License/copyright headers with dates — legal metadata, always kept.
+- A date bound to a live obligation: "this compat shim can be removed
+  after 2026-06" — a constraint with a failure mode (premature removal
+  breaks readers of old data), not metadata.
+- Strip-the-attribution: "per x-grilling: no try/except here — a silent
+  downgrade rots distributed training" → delete the attribution, keep
+  "no try/except here — a silent downgrade rots distributed training",
+  and re-judge that sentence on its own merits (concrete in-code
+  consequence → stays as a design note; bare "we don't use X" → ①).
+
 ## References to other files / projects / repos
 
 The test is always **from this project's standpoint**: does this reference
@@ -107,18 +135,14 @@ from) is usually provenance, not an aside.
 
 Comments and docstrings are not the only user-facing prose in a file.
 A plain string literal bound to a documentation-carrying name is the same
-kind of text with the same staleness failure modes, so it is in scope:
+kind of text with the same staleness failure modes, so it is in scope.
+Found by reading — the whitelist convention is:
 
-- Python (exact, via `extract_comments.py`): a string literal whose
-  assignment target or keyword name is whitelisted — `help`,
-  `description`, `doc`, `__doc__`, `epilog`, `usage`, `title`, `comment`,
-  `note`, `notes`, `summary`, `about` (constant `DESC_STRING_PARAMS` in
-  the extractor; extend there, never in the classifier). Reported as
-  kind `desc_string`. Typical shapes: `add_argument("--x", help="...")`,
-  `parser.description = "..."`, `EPILOG = """..."""` when the name itself
-  is whitelisted.
-- Other languages (no lexer in the extractor): check during the read
-  pass. Common shapes: cobra `Short:`/`Long:`/`Example`, yargs
+- `help`, `description`, `doc`, `__doc__`, `epilog`, `usage`, `title`,
+  `comment`, `note`/`notes`, `summary`, `about`. Typical shapes:
+  `add_argument("--x", help="...")`, `parser.description = "..."`,
+  module-level `EPILOG = """..."""`.
+- Other languages, same idea: cobra `Short:`/`Long:`/`Example`, yargs
   `.describe()`, commander `.description()`, clap `#[doc = ""]`/`about`,
   struct tags carrying docs.
 
@@ -131,24 +155,53 @@ users exactly like a comment and goes stale the same way:
   → tier ② delete, same rule as in comments.
 - Over-long help/epilog prose → tier ③ compress to the factual core.
 
-Two guardrails, because unlike comments a string is runtime content:
+Two guardrails, because unlike a comment a string is runtime content:
 
 - **Functional strings are never prose.** `raise`/`print`/log messages,
   prompts, UI and i18n values are ④ keep — always, even when they
   explain why. Their audience is the running program's user, not the
-  code reader, and editing them changes behavior. Only whitelisted names
-  (and the obvious doc-bearing constructs above) enter classification.
-- **Report the blast radius.** Every proposed desc_string edit is
-  annotated "changes runtime output (CLI help / docs)"; the user
-  confirms with that in view.
+  code reader.
+- **Report the blast radius.** Every proposed edit is annotated
+  "changes runtime output (CLI help / docs)"; the user confirms with
+  that in view.
 
-Extractor limits (best-effort by design; the read pass is the net):
-values wrapped in parentheses or moved to the next line, implicit
-concatenation (`"a" "b"` captures only the first part), and prefixed
-literals (`f""`/`b""`/`r""` — interpolated/byte content is functional
-anyway) are not auto-extracted; dict values (`{"help": "..."}`) and
-non-whitelisted names are out of scope on purpose. Annotated
-assignments (`usage: str = "..."`) are not matched either.
+Non-whitelisted names, dict values (`{"help": "..."}`), and interpolated
+(f-string) content are out of scope on purpose. When in doubt, judge by
+role: is this string user-facing documentation, or program behavior?
+
+## Comment review fan-out (the subagent template)
+
+Partition the scope files 5–10 per subagent by size (default 8; large
+code files fewer, small configs/docs more), spawn one parallel read-only
+`Explore` subagent per partition, and give each a self-contained prompt
+of this shape:
+
+> Review these files for a comment-cleanup pass: \<file list\>.
+> Scope: \<whole file | ONLY the listed lines\> \<line sets from
+> `changed_lines.py`, range/working-tree modes only\>.
+> First read \<skill-dir\>/GUIDE.md, then classify:
+> - Four tiers: ① why-not residue → delete; ② citation/metadata residue
+>   (test-instance values, date stamps, skill/session references,
+>   cross-file asides, dangling pointers) → delete; ③ over-long prose →
+>   compress to the factual core; ④ non-obvious what/why, interface
+>   contracts, provenance, dividers, license headers → keep.
+> - Descriptive strings: a plain string bound to help/description/doc/
+>   \_\_doc\_\_/epilog/usage/title/comment/note/notes/summary/about gets
+>   the same tiers; raise/print/log messages and prompts are functional —
+>   never propose touching them.
+> - Doc prose (md/rst body text) is report-only: list findings, never
+>   present them as ready-to-apply.
+>
+> Report ONLY: per finding — file, line, tier, original text (abridged),
+> proposed replacement (verbatim compression for ③); then one
+> kept-summary line per file. No edits. "Clean" is a valid per-file
+> result.
+
+Subagents only find. Before a finding enters the report, the main agent
+greps the cited text at the cited location — a subagent's file:line is a
+claim, not a fact; fix or drop mismatches. The session-context review
+(what was just built, what awaits its caller) stays with the main agent;
+subagents cannot do it.
 
 ## Dead-code findings (the `dead-code` checker)
 
@@ -241,5 +294,9 @@ as dead-code: the report lists it, the user decides.
   invariants stay. Only the defensive/alternative-comparison prose goes.
 - When in doubt between trim and delete, trim to the factual core — the
   user's rule forbids why-not-alternative, not factual why.
+- A subagent finding is a claim until verified: no unverified file:line
+  reaches the report, ever.
+- Doc-prose findings stay advisory even when everything else is
+  pre-approved: docs are edited item by item, with explicit approval.
 - Checkers report, they do not judge: never drop a finding because you
   can imagine a justification. The report lists it; the user decides.
