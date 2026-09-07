@@ -34,6 +34,7 @@ import subprocess
 
 CHECKER_ID = "no-inner-import"
 DESCRIPTION = "imports at module top level only (legit inner imports flagged, never hidden)"
+PYTHON_ONLY = True
 
 _TEST_MARKERS = ("/tests/", "/test_", "_test.py", "/conftest.py")
 

@@ -1,110 +1,113 @@
 ---
 name: x-code-clean
-description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "trim comments", "dead code", "unused code"); never auto-triggered. When invoked, run three check categories over a natural-language scope ("this commit", "the whole repo", default: uncommitted changes): comment cleanup — fanned out to parallel read-only subagents (5–10 text files each) reviewing comments, docstrings, descriptive help-style strings, and doc prose (report-only) against the four tiers, deleting feedback-driven why-not residue, date stamps, and skill/session citations; style checks (imports not at module top level, with exemption flags for legitimate inner imports); and dead-code detection (module-level definitions never referenced in the repo, Python only). Report first; edit only after the user confirms.
+description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "trim comments", "dead code", "unused code", "secrets"); never auto-triggered. When invoked, run three check categories over a natural-language scope ("this commit", "the whole repo", default: uncommitted changes): comment/text cleanup — a hard extraction pass (extract_comments.py enumerates every comment, docstring, and descriptive help-style string) plus a soft subagent fan-out (5–10 text files each) classifying them against the four tiers, deleting feedback-driven why-not residue, date stamps, skill/session citations, and secrets (whole-line delete); style checks (imports not at module top level, with exemption flags for legitimate inner imports); dead-code detection (module-level definitions never referenced in the repo, Python only). Report first; edit only after the user confirms.
 ---
 
 # Code Cleanup
 
 This is an **active** skill: it runs only on explicit invocation (by name or
-keywords such as "clean up comments" / "trim comments" / "dead code"); never
-auto-trigger it from conversation content alone. Three check categories run
-over the scope, all of them, every time:
+keywords such as "clean up comments" / "trim comments" / "dead code" /
+"secrets"); never auto-trigger it from conversation content alone. Three
+check categories run over the scope, all of them, every time:
 
-1. **Comments** — four-tier classification (below) over every non-binary
-   text file: comments, docstrings, descriptive help-style strings, doc
-   prose. Parallel read-only subagents (fan-out below); no extraction script.
+1. **Comments & text** — four-tier classification (below) over every
+   non-binary text file: comments, docstrings, descriptive help-style
+   strings, doc prose. Dual review: hard extraction enumerates every
+   candidate; a soft subagent fan-out classifies and sweeps (below).
 2. **Style** — registered style checkers (Python only for now).
 3. **Code** — dead-code candidates (Python only for now).
 
 Output a per-item report first; only edit after the user confirms. **Read
-`GUIDE.md` in this skill directory before classifying** — worked examples,
-the assert-vs-example rule, the subagent spawn template, pitfalls.
+`GUIDE.md` before classifying** — worked examples, the example keep rule,
+the secrets rule, the spawn template, pitfalls.
 
 ## The core rule (the user's criterion)
-It must NOT say **why the code is not written some other way** ("why not
-alternative X") — residue of a past Q&A, noise for every future reader. A
-"why not" with a concrete in-code consequence is a design note → keep; a
-bare alternative-comparison is feedback-driven → delete.
+It must NOT say **why the code is not written some other way** — past-Q&A
+residue, noise for every future reader. A why-not with a concrete in-code
+consequence is a design note → keep; a bare alternative-comparison deletes.
+
+## Secrets (hard checker + soft pass)
+Secret-shaped values — IPs, tokens, credentials — get a dual pass: the
+`no-secrets` checker (high-precision patterns; loopback/doc-range hits
+come back as flags, never hidden) plus the subagents' sweep for
+unstructured ones (internal hostnames, topology). A comment/doc-line hit
+→ **delete the whole line**; code/functional-string hits are report-only.
+GUIDE.md covers docstrings/strings, the git-history caveat, and noise.
 
 ## Citation and metadata residue (② by default)
 Test-instance citations (models, hyper-params, parallel configs), date
-stamps ("written 2026-09-05"), and skill/session references ("per
-x-grilling") are metadata residue — git blame and the commit message are
-the permanent database for when and why; comment copies rot → delete by
-default. Exceptions: license/copyright headers (dates are legal metadata,
-④ always); a date carrying a live obligation ("compat layer can go after
-2026-06", ④); a skill-cited comment with a real in-code reason — strip
-the attribution, keep the reason, re-judge it (① if a bare why-not).
-Config restrictions → an `assert` plus one pointer; teaching examples stay, written relatively ("TP member 0/1"). Details: GUIDE.md.
+stamps, and skill/session references are metadata residue — git blame and
+the commit message are the permanent database for when and why; comment
+copies rot → delete by default. Exceptions: GUIDE.md.
+
+## Examples: the two-condition keep rule
+An example survives only as: ① a pitfall/warning whose hazard is intrinsic
+to this code (a kernel that really does materialize a huge intermediate)
+and cannot be asserted — the note is a property of the code, not a memory;
+② a macro example — a mapping/algorithm/structure above one experiment's
+scope, numbers as relative placeholders. Everything else deletes: results,
+measured numbers, configs cited as facts (②); assertable limits → `assert`.
+Worked cases: GUIDE.md.
 
 ## References to other files / projects / repos
-Judge every comment that points at another file from **this project's
-standpoint**: keep it only if it creates a constraint or provenance this
-project needs. **Keep (④)**: vendored/ported-code provenance ("copied from
-upstream, sync on update"); external spec/format contracts ("layout follows
-RFC 1234 §3"); verified in-repo sync pointers. **Delete (②)**: informational
-asides into other projects/repos; dangling in-repo references (target gone —
-always). Verify in-repo targets against the working tree. Edge cases: GUIDE.md.
+Judge from **this project's standpoint** — keep only a reference creating
+a constraint or provenance this project needs (vendored provenance, spec
+contracts, verified sync pointers, ④); asides and dangling references
+delete (②). Verify in-repo targets. Edge cases: GUIDE.md.
 
 ## Four-tier classification
 1. **① Delete** — feedback-driven "why not alternative X" explanations.
-2. **② Delete** — citation/metadata residue: restates the code or a
-   sibling docstring verbatim, test-instance citations, date stamps,
-   skill/session references, unnecessary cross-file/cross-repo references.
-3. **③ Trim** — over-long prose: compress to the core what/why, drop
-   defensive hedges; multi-paragraph docstrings collapse to 1–2 sentences.
+2. **② Delete** — citation/metadata residue: verbatim restatements,
+   test-instance citations, date stamps, skill/session references,
+   secrets (whole-line delete), experiment data, unneeded cross-refs.
+3. **③ Trim** — over-long prose: compress to the core what/why; multi-
+   paragraph docstrings collapse to 1–2 sentences.
 4. **④ Keep / fine-tune** — non-obvious what/why, interface contracts,
    binding references, section dividers, one-line purpose docstrings,
-   license/copyright headers (always keep). Fix only factual errors or
-   non-local assumptions.
+   license headers (always keep). Fix only factual errors.
 
 Docstrings follow the same tiers, but keep a one-line purpose statement on
-public functions/classes so the API stays readable.
-
-Descriptive strings follow the same tiers: a plain string literal bound
-to a whitelisted doc name — `help`/`description`/`doc`/`__doc__`/
-`epilog`/`usage`/`title`/`comment`/`note(s)`/`summary`/`about` (argparse
-`help=` is the canonical case). Functional strings (raise/print/log,
-prompts, UI/i18n) are always ④ keep; edits to one are annotated
-"changes runtime output". Doc prose is reviewed but **report-only** —
-asked item by item even in "just fix it" mode. Details: GUIDE.md.
+public functions/classes. Descriptive strings — plain literals bound to a
+whitelisted doc name (whitelist in GUIDE.md) — follow the same tiers.
+Functional strings (raise/print/log, prompts, UI/i18n) are always ④ keep;
+edits to one are annotated "changes runtime output". Doc prose is
+**report-only** — asked item by item even in "just fix it" mode.
 
 ## Scope (no invocation parameters)
 The skill takes **no flags**; the user states the scope in natural language:
-- "this commit / since commit X" → range mode: only the lines the range
-  added are reviewed, created files whole (the tree must match the range
-  end — say so in the report if it has moved past).
-- "the whole repo" → whole-repo mode: every non-binary text file, whole.
-- nothing said → the uncommitted changes; **state that scope at the top
-  of the report**.
+"this commit / since commit X" → range mode (only added lines reviewed,
+created files whole; say so if the tree moved past the range end); "the
+whole repo" → every non-binary text file, whole; nothing said → the
+uncommitted changes — **state that scope at the top of the report**.
 
-## Comment review fan-out (subagents)
-- Line sets: `python3 scripts/changed_lines.py` (working tree) or with
-  `--range <start>..<end>` — added lines per modified file, created
-  files listed whole. Whole-repo mode skips this step.
-- Partition the scope files 5–10 per subagent by size (large code files
-  fewer, small configs/docs more; default 8); spawn one parallel
-  read-only `Explore` subagent per partition, no cap on count. Binary
-  extensions (constant in `changed_lines.py`) are already excluded.
-- Each subagent gets the self-contained template from GUIDE.md: files +
-  mode + line sets, rules digest, GUIDE.md path, findings format.
-  Subagents only find.
-- The main agent verifies every finding (grep the cited text at
-  file:line; fix or drop mismatches), applies the session-context pass,
-  then reports; edits after confirmation are made by the main agent.
+## Comment review fan-out (dual: extraction + subagents)
+- Line sets: `python3 scripts/changed_lines.py` (working tree, or
+  `--range <start>..<end>`) — added lines per modified file, created files
+  whole; whole-repo mode skips this step.
+- Hard extraction: `python3 scripts/extract_comments.py --files <scope
+  files> --lines-json -` (pipe the changed_lines JSON; whole-repo mode
+  omits the flag) — every comment/docstring/desc-string enumerated.
+- Partition the scope files 5–10 per `Explore` subagent by size (default
+  8, no cap), spawned in parallel; each gets the GUIDE.md spawn template
+  (files + mode + extracted item list + rules digest), classifies **every**
+  listed item — the coverage floor, not the ceiling — and sweeps for what
+  extraction cannot see (doc prose, unstructured secrets).
+- The main agent grep-verifies every finding, applies the session-context
+  pass, reports; edits after confirmation are the main agent's.
 
 ## Checkers (all registered checkers always run)
 `checks.py` has no checker selection — everything in `scripts/checks/` runs
 every time:
 
-- `no-inner-import` (style): imports not at module top level. Legitimate
-  patterns (`typing-only`, `optional-dep`, `lazy-activation`, `test-local`,
-  `circular-guard`, `heavy-deferral`) are downgraded to exemption
-  candidates with a flag — reported, never hidden, no hoist proposal.
-- `dead-code` (code): module-level definitions never referenced in any
-  repo `.py`. Exemption signals (`exported`, `decorated`, `entry-point`,
-  `test-only`, `dynamic-ref`) are reported as flags, never hidden.
-  Name-based matching can miss — verify candidates with your own grep.
+- `no-inner-import` (style, Python): imports not at module top level;
+  legitimate patterns (six structural signals, GUIDE.md) downgrade to
+  exemption candidates with a flag — reported, never hidden, no hoist.
+- `dead-code` (code, Python): module-level definitions never referenced in
+  any repo `.py`; exemption signals (`exported`, `decorated`, `entry-point`,
+  `test-only`, `dynamic-ref`) reported as flags; verify with your own grep.
+- `no-secrets` (text, every non-binary file): secret-shaped values;
+  exemption flags (`loopback`, `doc-range`) stay in the report; version-
+  like noise is dropped at verification, accounted for in the summary.
 
 Checkers only *find*; fixes go through the report-then-confirm flow. Report
 all findings — the user decides; never drop one with a plausible excuse.
@@ -115,36 +118,32 @@ all findings — the user decides; never drop one with a plausible excuse.
 ```
 python3 scripts/changed_lines.py [--range <start>..HEAD]
 python3 scripts/checks.py --range <start>..HEAD | --files a.py ...
+python3 scripts/extract_comments.py --files <scope files> [--lines-json -]
 ```
 
-Then fan out the comment review (section above) and collect the findings.
-
 ### 2. Verify and re-check
-Grep-verify every subagent finding against the real file before it enters
-the report (the report must cite real file:line and real text). Then
-re-check findings against session context: what was just built, which
-definitions await their caller. A just-added function awaiting its caller
-is not dead code — annotate, don't propose deletion.
+Grep-verify every finding against the real file before it enters the
+report (cite real file:line + real text). Then re-check against session
+context: a just-added function awaiting its caller is not dead code —
+annotate, don't propose deletion.
 
 ### 3. Report (default, before any edit)
 - State the scope first (range / whole repo / "uncommitted changes").
-- **Changes** (tiers ①–③ and checker findings): `file:line` + original text
-  (abridged) + tier/checker + replacement text (verbatim for ③ trims);
-  dead-code and no-inner-import findings with flags are listed as exempted
-  (flag + reason, no hoist proposal); descriptive-string edits carry the
-  runtime-output annotation; doc-prose findings are marked report-only.
+- **Changes** (tiers ①–③ and checker findings): `file:line` + original
+  text (abridged) + tier/checker + replacement (verbatim for ③); flagged
+  checker findings listed as exempted; secrets hits state "whole line
+  deleted"; descriptive-string edits carry "changes runtime output";
+  doc-prose findings are report-only.
 - **Kept** (④): one compact line per file — line numbers + 3–6 word reason
   ("non-obvious why", "interface contract", "vendored provenance").
 
 End with a summary count (delete N / trim N / keep N / violations M /
-exempted K). Do not edit until the user confirms. If the user explicitly
-says "just fix it", skip the report for code comments and checker
-findings — never for doc-prose findings (asked item by item).
+exempted K). Do not edit until the user confirms. "Just fix it" skips the
+report for code comments and checker findings — never for doc prose.
 
 ### 4. Apply and verify
 - Edit each accepted item (`Edit` tool, exact matches from the working tree).
-- Syntax gate: Python `py_compile`; Shell `bash -n`; YAML `yaml.safe_load`;
-  others: skip if no toolchain, say so.
-- `git diff` — self-check: only comments/strings/doc text/findings changed,
-  no behavior drift; descriptive-string edits are the expected exception.
+- Syntax gate: `py_compile` / `bash -n` / `yaml.safe_load`; skip others if no toolchain, say so.
+- `git diff` self-check: only comments/strings/doc text changed, no
+  behavior drift (descriptive-string edits are the expected exception).
 - Commit only when asked, e.g. `Trim feedback-driven and redundant comments in <area>`.

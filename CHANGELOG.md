@@ -1,5 +1,50 @@
 # Changelog
 
+## v0.10.0 (2026-09-08)
+
+- `x-code-clean` gains a secrets category for comments and text, built as a
+  dual pass: the new `no-secrets` checker (high-precision patterns — IPv4/
+  IPv6, AWS/GitHub/Slack/Google/OpenAI token shapes, private-key headers,
+  bearer tokens, `password=/token:` assignments with literal values) runs
+  over every non-binary text file, and the review subagents sweep for
+  unstructured secrets (internal hostnames, topology, usernames) no regex
+  catches. A hit in a comment/doc line deletes the whole line — no
+  redact-and-keep; code/functional-string hits are report-only; loopback
+  and RFC 5737/3849 doc-range addresses come back as exemption flags,
+  never hidden. The report must state that deleting text does not scrub
+  git history and that live credentials need rotation.
+- Comment review returns to a dual hard/soft mechanism: the subagent
+  fan-out of v0.9.0 is kept, and `extract_comments.py` is restored (from
+  the v0.8.0 tree) as the hard coverage half. Its git plumbing is replaced
+  by a `--lines-json` flag that consumes `changed_lines.py` output
+  directly (stdin-friendly), so scope computation lives in one place and
+  every comment/docstring/descriptive string in scope is enumerated
+  before subagents classify them — the extraction list is the coverage
+  floor (every item classified, none skipped), the subagent sweep the
+  ceiling. `checks.py` likewise widens from `.py`-only to every
+  non-binary text file (null-byte sniff), with Python-only checkers
+  declaring `PYTHON_ONLY = True`.
+- The assert-vs-example rule is rewritten as the two-condition keep rule:
+  an example survives only as ① a pitfall/warning whose hazard is
+  intrinsic to this code (an OOM note earns its place only on a
+  kernel/function whose memory footprint really is a problem — a warning
+  citing a past run, "TP=2 + 4b measured OOM", deletes outright) or ② a
+  macro example above one experiment's scope with relative placeholder
+  numbers. Absolute counter-examples, deleted by default: specific
+  experiment results and experimental data (measured numbers, benchmark
+  figures, configs cited as facts). The assert-first rule for real config
+  restrictions is unchanged.
+- Known checker noise is handled honestly: shape-only IP detection flags
+  version-like numbers too ("2.6.32.5"); the verifier drops proven noise
+  and accounts for the drop in the report summary.
+- Tests: extraction tests restored from v0.8.0 (t02/t08/t09, renumbered),
+  new t10 (extract + changed_lines composition, including the
+  empty-payload-scopes-to-nothing contract) and t11 (no-secrets across
+  file types, exemption flags, placeholder/version behavior); suite is
+  now 11 scenarios.
+- SKILLS.md/README registry descriptions updated; SKILL.md stays within
+  the 150-line budget.
+
 ## v0.9.0 (2026-09-07)
 
 - `x-code-clean` comment review re-architected from script extraction to a

@@ -21,7 +21,7 @@ excuse into a comment. It is noise for every future reader.
 - Alternative-comparison: "without using `retain_graph=True`", "deliberately does not implement `__getattr__`", "taking only X would silently drop Y", "which is why the advance cannot happen inside forward"
 - Explaining why two functions do not share code: "each computes its side directly, kept mathematically equivalent"
 - Session-directed rules: "do not duplicate these checks elsewhere", "each assert message states its own reason"
-- Test-instance citations: "Example (language TP=2, vit_batch_factor=4)", "we tested with the 4b config", any model/hyper-param/parallel-layout value quoted as a fact (see the assert-vs-example rule below)
+- Test-instance citations: "Example (language TP=2, vit_batch_factor=4)", "we tested with the 4b config", any model/hyper-param/parallel-layout value quoted as a fact (see the example keep rule below)
 
 ### The boundary: "why not X" that is a design note
 
@@ -47,26 +47,93 @@ A comment that explains what the code needs to stay correct — e.g. "keep the
 grid metadata: `_count_vision_tokens` needs it for the full macro batch" —
 is legitimate why and stays.
 
-## Test-instance information (models, hyper-params, parallel configs)
+## Examples: the two-condition keep rule
 
-Comments citing concrete test instances — model names ("Qwen3.5"),
-hyper-parameters (vit_batch_factor=4), parallel layouts ("TP=2, DP=6"),
-datasets — are usually residue of development Q&A ("run this example",
-"verify this config"). They carry no code semantics and go stale the moment
-the config changes. Delete them by default.
+An example in a comment survives only in one of two shapes; everything
+else — and every doubt — deletes (②). The sharper question behind the
+rule: is the example a property of this code, or a souvenir of a run?
+
+### Keep ① — pitfall/warning notes with an intrinsic hazard
+
+A warning ("may OOM here", "must be contiguous or the kernel reads
+garbage") stays only when **this code** actually carries the hazard —
+readable in the code itself: this kernel materializes a full-vocab
+intermediate, this path recurses without a base-case guard — and an
+`assert` (or any executable guard) does not fit. The note is then a
+property of the code, not a memory: it stays true for as long as the
+code does.
+
+A warning whose only evidence is a past run deletes outright.
+"TP=2 + 4b measured OOM here" is an experiment citation wearing a
+warning's clothes — the observation does not make the code dangerous,
+the config drifts, and no future reader can re-run yesterday's
+experiment. An OOM note earns its place only on a kernel/function whose
+memory footprint genuinely is a problem; everywhere else it is exactly
+the over-commenting this skill removes.
+
+### Keep ② — macro examples
+
+A kept example lives above one experiment's scope: it demonstrates a
+mapping, algorithm, or structure (index math, a layout, a protocol
+exchange) to aid understanding; its numbers are placeholders written
+relatively ("TP member 0/1", not "rank 2/rank 3"); it never frames
+itself as "under config X". The moment the example is confined to one
+experiment or run, it is a test-instance citation, not teaching
+material → delete.
+
+### Absolute counter-examples (delete by default)
+
+Specific experiment results and experimental data: measured numbers
+("3.2 s/iter"), benchmark figures, single-run observations, loss
+values, configs cited as facts ("we tested with the 4b config"). These
+are ② residue — stale the moment the config moves.
+
+### The assert-first rule (unchanged)
 
 If the code genuinely only works under a specific config, express the
-restriction with an `assert` — it executes, fails loudly, and cannot rot —
-and keep at most one short comment pointing at the constraint. A comment
-that merely *claims* a restriction is the worst option: unenforced and
-stale. (Check that the assert exists before deleting a config-citing
-comment; if the restriction is real but unasserted, the fix is to add the
+restriction with an `assert` — it executes, fails loudly, and cannot
+rot — and keep at most one short pointer comment. A comment that merely
+*claims* a restriction is the worst option: unenforced and stale.
+(Check that the assert exists before deleting a config-citing comment;
+if the restriction is real but unasserted, the fix is to add the
 assert, not to keep the comment.)
 
-Teaching examples that demonstrate a mapping or algorithm are different:
-their numbers are placeholders, not test instances. Keep them, but write
-them relatively ("TP member 0/1") rather than absolutely ("rank 2/rank 3"),
-and never frame them as "under config X".
+## Secrets and sensitive values (hard checker + soft pass)
+
+Secret-shaped text gets a dual pass. The **hard** side is the
+`no-secrets` checker: high-precision patterns (IPv4/IPv6, AWS/GitHub/
+Slack/Google/OpenAI token shapes, private-key headers, bearer tokens,
+`password=/token:` assignments with literal-looking values) over every
+non-binary text file. The **soft** side is the subagent sweep for what
+no regex catches: internal hostnames (`db-prod-3.internal`), IPv6 short
+forms, topology descriptions, usernames, "ask admin X for the password"
+asides.
+
+Verdict per hit:
+
+- Comment or doc line → delete the whole line. No redact-and-keep: a
+  line that carried a secret is not trusted to keep, and the sentence
+  around it is usually residue anyway. A multi-line docstring loses the
+  carrying sentence/lines (a ③-style edit, syntax-gated after).
+- Descriptive string → remove the carrying line, annotated "changes
+  runtime output" like any string edit.
+- Code line (functional string, config value) → report-only flag:
+  removal can change behavior, and this skill does not refactor code.
+
+Exemptions are reported as flags, never hidden: `loopback` (127.0.0.0/8,
+0.0.0.0) and `doc-range` (RFC 5737 192.0.2.0/24 / 198.51.100.0/24 /
+203.0.113.0/24, RFC 3849 2001:db8::/32, broadcast 255.255.255.255).
+
+Known noise, handled at verification: the checker is shape-only, so any
+4-octet number is IP-shaped — a version number ("bumped to 2.6.32.5")
+is the classic false positive. Verify the line's context; drop proven
+version strings and account for the drop in the report summary
+("dropped N known-noise hits") so nothing disappears silently.
+
+Two duties travel with the report: state that deleting working-tree
+text does not scrub git history (an already-pushed secret needs history
+rotation outside this skill), and note that for a live credential
+deletion is not remediation — the credential needs rotating.
 
 ## Dates and process/skill citations
 
@@ -171,20 +238,41 @@ role: is this string user-facing documentation, or program behavior?
 
 ## Comment review fan-out (the subagent template)
 
-Partition the scope files 5–10 per subagent by size (default 8; large
-code files fewer, small configs/docs more), spawn one parallel read-only
-`Explore` subagent per partition, and give each a self-contained prompt
-of this shape:
+The comments category is a dual review: extraction guarantees coverage,
+subagents judge.
 
-> Review these files for a comment-cleanup pass: \<file list\>.
-> Scope: \<whole file | ONLY the listed lines\> \<line sets from
-> `changed_lines.py`, range/working-tree modes only\>.
-> First read \<skill-dir\>/GUIDE.md, then classify:
+- Hard: run `changed_lines.py` (range/uncommitted modes), then
+  `extract_comments.py --files <scope files> --lines-json -` (pipe the
+  JSON in; whole-repo mode omits the flag). Every comment, docstring,
+  and descriptive string in scope is now enumerated.
+- Soft: partition the scope files 5–10 per subagent by size (default 8;
+  large code files fewer, small configs/docs more), spawn one parallel
+  read-only `Explore` subagent per partition, and give each a
+  self-contained prompt of this shape:
+
+> Review these files for a comment-cleanup pass: <file list>.
+> Scope: <whole file | ONLY the listed lines> <line sets from
+> `changed_lines.py`, range/working-tree modes only>.
+> The extraction pass already enumerated the comment candidates in your
+> files (JSON below). Classify EVERY listed item — the list is the
+> coverage floor; you may not skip entries — and additionally sweep the
+> files for text extraction cannot see (doc prose, comment-like
+> constructs it misses) and for unstructured secrets (internal
+> hostnames, topology, usernames; structured IPs/tokens are the
+> checker's job — still report anything you see).
+> First read <skill-dir>/GUIDE.md, then classify:
 > - Four tiers: ① why-not residue → delete; ② citation/metadata residue
 >   (test-instance values, date stamps, skill/session references,
 >   cross-file asides, dangling pointers) → delete; ③ over-long prose →
 >   compress to the factual core; ④ non-obvious what/why, interface
 >   contracts, provenance, dividers, license headers → keep.
+> - Secrets: a hit in a comment → propose deleting the whole line; in a
+>   descriptive string → the carrying line, annotated "changes runtime
+>   output"; on a code line → report-only. Loopback/doc-range addresses
+>   are reported with their flags, never hidden.
+> - Examples: kept only as pitfall notes (hazard intrinsic to this code,
+>   assert unsuitable) or macro examples (above one experiment's scope,
+>   relative placeholder numbers). Experiment results/data delete.
 > - Descriptive strings: a plain string bound to help/description/doc/
 >   \_\_doc\_\_/epilog/usage/title/comment/note/notes/summary/about gets
 >   the same tiers; raise/print/log messages and prompts are functional —
@@ -289,6 +377,13 @@ as dead-code: the report lists it, the user decides.
 
 - Do not "improve" tier-④ comments just to look busy — a good review changes
   little. Keeping ~90% unchanged is the healthy outcome.
+- The extraction list is the coverage floor: classifying every listed item
+  is mandatory, and the soft sweep may add findings but never subtract
+  items. An item you judge fine still belongs in the kept summary.
+- Secret findings on code lines stay report-only — do not edit functional
+  strings or configs to "help"; removal can change behavior, the user
+  decides. And deletion is not remediation: flag live credentials for
+  rotation and say that git history is not scrubbed.
 - Long docstrings are not automatically bad: file-format contracts (e.g.
   checkpoint layout), WARNING/caveat blocks, and design notes with real
   invariants stay. Only the defensive/alternative-comparison prose goes.

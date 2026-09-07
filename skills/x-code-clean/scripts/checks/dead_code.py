@@ -29,6 +29,7 @@ import subprocess
 
 CHECKER_ID = "dead-code"
 DESCRIPTION = "module-level defs (functions/classes/constants) never referenced in the repo"
+PYTHON_ONLY = True
 
 _INDEX_CACHE = {}
 
