@@ -36,9 +36,9 @@ GUIDE.md covers docstrings/strings, the git-history caveat, and noise.
 
 ## Citation and metadata residue (② by default)
 Test-instance citations (models, hyper-params, parallel configs), date
-stamps, and skill/session references are metadata residue — git blame and
-the commit message are the permanent database for when and why; comment
-copies rot → delete by default. Exceptions: GUIDE.md.
+stamps, skill/session references — git blame and the commit message are
+the permanent database; comment copies rot → delete by default.
+Exceptions: GUIDE.md.
 
 ## Examples: the two-condition keep rule
 An example survives only as: ① a pitfall/warning whose hazard is intrinsic
@@ -88,7 +88,9 @@ uncommitted changes — **state that scope at the top of the report**.
   files> --lines-json -` (pipe the changed_lines JSON; whole-repo mode
   omits the flag) — every comment/docstring/desc-string enumerated.
 - Partition the scope files 5–10 per `Explore` subagent by size (default
-  8, no cap), spawned in parallel; each gets the GUIDE.md spawn template
+  8; partition count may exceed the cap). Spawn **at most 5 subagents at
+  once**, in parallel; queue the rest and spawn the next partition each
+  time a running one finishes. Each gets the GUIDE.md spawn template
   (files + mode + extracted item list + rules digest), classifies **every**
   listed item — the coverage floor, not the ceiling — and sweeps for what
   extraction cannot see (doc prose, unstructured secrets).
@@ -97,7 +99,8 @@ uncommitted changes — **state that scope at the top of the report**.
 
 ## Checkers (all registered checkers always run)
 `checks.py` has no checker selection — everything in `scripts/checks/` runs
-every time:
+every time; checkers only *find* — report all findings, the user decides,
+never drop one with a plausible excuse:
 
 - `no-inner-import` (style, Python): imports not at module top level;
   legitimate patterns (six structural signals, GUIDE.md) downgrade to
@@ -108,9 +111,6 @@ every time:
 - `no-secrets` (text, every non-binary file): secret-shaped values;
   exemption flags (`loopback`, `doc-range`) stay in the report; version-
   like noise is dropped at verification, accounted for in the summary.
-
-Checkers only *find*; fixes go through the report-then-confirm flow. Report
-all findings — the user decides; never drop one with a plausible excuse.
 
 ## Workflow
 ### 1. Scope the files / run checkers

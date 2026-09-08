@@ -246,9 +246,12 @@ subagents judge.
   JSON in; whole-repo mode omits the flag). Every comment, docstring,
   and descriptive string in scope is now enumerated.
 - Soft: partition the scope files 5–10 per subagent by size (default 8;
-  large code files fewer, small configs/docs more), spawn one parallel
-  read-only `Explore` subagent per partition, and give each a
-  self-contained prompt of this shape:
+  large code files fewer, small configs/docs more) — the partition count
+  may exceed the concurrency cap. Spawn **at most 5 read-only `Explore`
+  subagents at once**, in parallel; keep the remaining partitions queued
+  and spawn the next one each time a running subagent finishes (collect
+  and verify its findings before moving on). Give each a self-contained
+  prompt of this shape:
 
 > Review these files for a comment-cleanup pass: <file list>.
 > Scope: <whole file | ONLY the listed lines> <line sets from

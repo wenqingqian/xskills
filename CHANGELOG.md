@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.10.1 (2026-09-08)
+
+- `x-code-clean` comment fan-out is now concurrency-bounded: at most **5
+  subagents run at once** (previously uncapped). Large scopes still
+  partition 5–10 files per read-only `Explore` subagent, but partitions
+  beyond five queue, and the next one spawns each time a running
+  subagent finishes (its findings are collected and verified before
+  moving on). Prevents unbounded subagent creation when the scope spans
+  many files. SKILL.md/GUIDE.md updated; SKILL.md stays at 149 lines.
+
 ## v0.10.0 (2026-09-08)
 
 - `x-code-clean` gains a secrets category for comments and text, built as a
