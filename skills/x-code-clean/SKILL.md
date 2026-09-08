@@ -1,6 +1,6 @@
 ---
 name: x-code-clean
-description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "trim comments", "dead code", "unused code", "secrets"); never auto-triggered. When invoked, run three check categories over a natural-language scope ("this commit", "the whole repo", default: uncommitted changes): comment/text cleanup — a hard extraction pass (extract_comments.py enumerates every comment, docstring, and descriptive help-style string) plus a soft subagent fan-out (5–10 text files each) classifying them against the four tiers, deleting feedback-driven why-not residue, date stamps, skill/session citations, and secrets (whole-line delete); style checks (imports not at module top level, with exemption flags for legitimate inner imports); dead-code detection (module-level definitions never referenced in the repo, Python only). Report first; edit only after the user confirms.
+description: Explicit-only: invoked ONLY when the user explicitly requests this skill by name or its keywords (e.g. "x-code-clean", "clean up comments", "trim comments", "dead code", "unused code", "secrets"); never auto-triggered. When invoked, run three check categories over a natural-language scope ("this commit", "the whole repo", default: uncommitted changes): comment/text cleanup — a hard extraction pass (extract_comments.py enumerates every comment, docstring, and descriptive help-style string) plus a soft subagent fan-out (5–10 text files each, at most 5 concurrent) classifying them against the four tiers, deleting feedback-driven why-not residue, restatements and duplicates, experiment souvenirs, process narration, and secrets (whole-line delete); style checks (imports not at module top level, with exemption flags for legitimate inner imports); dead-code detection (module-level definitions never referenced in the repo, Python only). Report first; edit only after the user confirms.
 ---
 
 # Code Cleanup
@@ -32,7 +32,7 @@ Secret-shaped values — IPs, tokens, credentials — get a dual pass: the
 come back as flags, never hidden) plus the subagents' sweep for
 unstructured ones (internal hostnames, topology). A comment/doc-line hit
 → **delete the whole line**; code/functional-string hits are report-only.
-GUIDE.md covers docstrings/strings, the git-history caveat, and noise.
+Details: GUIDE.md.
 
 ## Citation and metadata residue (② by default)
 Test-instance citations (models, hyper-params, parallel configs), date
@@ -50,18 +50,20 @@ measured numbers, configs cited as facts (②); assertable limits → `assert`.
 Worked cases: GUIDE.md.
 
 ## References to other files / projects / repos
-Judge from **this project's standpoint** — keep only a reference creating
-a constraint or provenance this project needs (vendored provenance, spec
-contracts, verified sync pointers, ④); asides and dangling references
-delete (②). Verify in-repo targets. Edge cases: GUIDE.md.
+Judge from **this project's standpoint**: keep only a reference creating
+a constraint or provenance this project needs (④ vendored provenance, spec
+contracts, verified sync pointers); asides and dangling refs delete (②).
 
 ## Four-tier classification
 1. **① Delete** — feedback-driven "why not alternative X" explanations.
-2. **② Delete** — citation/metadata residue: verbatim restatements,
-   test-instance citations, date stamps, skill/session references,
-   secrets (whole-line delete), experiment data, unneeded cross-refs.
-3. **③ Trim** — over-long prose: compress to the core what/why; multi-
-   paragraph docstrings collapse to 1–2 sentences.
+2. **② Delete** — restatements and residue: code narration, signature
+   mirrors, level duplicates (one canonical location), assert/raise
+   preambles, experiment souvenirs, process/history narration, TOC
+   docstrings, maintenance imperatives, secrets (whole-line delete),
+   dead or background cross-refs.
+3. **③ Trim** — public docstrings to a purpose line + non-obvious
+   semantics; design notes to constraint + consequence; examples to one
+   macro mapping.
 4. **④ Keep / fine-tune** — non-obvious what/why, interface contracts,
    binding references, section dividers, one-line purpose docstrings,
    license headers (always keep). Fix only factual errors.
@@ -122,10 +124,9 @@ python3 scripts/extract_comments.py --files <scope files> [--lines-json -]
 ```
 
 ### 2. Verify and re-check
-Grep-verify every finding against the real file before it enters the
-report (cite real file:line + real text). Then re-check against session
-context: a just-added function awaiting its caller is not dead code —
-annotate, don't propose deletion.
+Grep-verify every finding against the real file (cite real file:line +
+real text); then re-check against session context — a just-added function
+awaiting its caller is not dead code; annotate, don't propose deletion.
 
 ### 3. Report (default, before any edit)
 - State the scope first (range / whole repo / "uncommitted changes").

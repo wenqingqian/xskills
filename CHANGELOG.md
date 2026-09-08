@@ -1,5 +1,42 @@
 # Changelog
 
+## v0.11.0 (2026-09-08)
+
+- `x-code-clean` gains a restatement delete taxonomy (all ②, from the
+  user's finalized list): code narration (the comment translates the
+  next line; paraphrase counts, not just verbatim), signature
+  restatement (Args/Returns mirroring names/types/returns — keep only
+  non-obvious semantics), duplication across levels (one mechanism gets
+  one canonical location — definition site by default, module docstring
+  only for module-wide contracts, call sites use a name or one-line
+  pointer), assert/raise preambles (the executable form is the better
+  doc), experiment souvenirs (GPU count, rank, loss, shapes, memory,
+  time, config values, "reported failure" — keep the generalized
+  failure mechanism, never the observation), process/history narration
+  (prototype, future implementation, added during review, dates,
+  skill/session, plan/iteration/exp), table-of-contents docstrings
+  (symbol table is the TOC), maintenance imperatives ("when adding a
+  method later, forward it here" — real obligations become a stable
+  invariant or an automated check, not prose), and dead or background
+  cross-references. Bare alternative defenses stay under the existing
+  core rule.
+- Tier ③ gets explicit compress targets: public API docstrings to one
+  purpose sentence plus non-obvious parameter semantics; design notes
+  to constraint + consequence (backstory and repeated derivations
+  delete); exactly one macro example per algorithm mapping; provenance
+  only with a real sync obligation; and a post-delete pass enforcing
+  the one-canonical-location principle on survivors.
+- Boundary decisions made during integration (flagged for veto):
+  named sync obligations between concrete artifacts (vendored
+  provenance, verified in-repo sync pointers) stay ④ — the maintenance-
+  imperative ban targets open-ended evolution rituals; and "most
+  authoritative location" is operationalized as definition site first.
+- GUIDE.md: new "delete taxonomy" and "compress rules" sections, dates
+  section extended with the process-narration shapes, subagent spawn
+  template digest and pitfalls updated. SKILL.md ② / ③ wording updated
+  within the 150-line budget; registry description mentions the new
+  categories and the 5-concurrent fan-out cap from v0.10.1.
+
 ## v0.10.1 (2026-09-08)
 
 - `x-code-clean` comment fan-out is now concurrency-bounded: at most **5

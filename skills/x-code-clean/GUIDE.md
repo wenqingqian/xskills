@@ -1,10 +1,12 @@
 # x-code-clean Classification Guide
 
 Full standards behind `SKILL.md`: the core rule's edge cases, the
-recognizable feedback-driven phrasing, the cross-file reference cases, the
-subagent spawn template, the descriptive-string whitelist, the dead-code
-caveats, and the pitfalls. Read this before classifying comments when the
-case is not obvious.
+recognizable feedback-driven phrasing, the delete taxonomy (every
+restatement shape), the compress rules, the example keep rule, the
+secrets rule, the cross-file reference cases, the subagent spawn
+template, the descriptive-string whitelist, the dead-code caveats, and
+the pitfalls. Read this before classifying comments when the case is
+not obvious.
 
 ## The core rule in detail
 
@@ -46,6 +48,87 @@ refuse an alternative? Specific failure mode → keep.
 A comment that explains what the code needs to stay correct — e.g. "keep the
 grid metadata: `_count_vision_tokens` needs it for the full macro batch" —
 is legitimate why and stays.
+
+## The delete taxonomy: restatement in all its shapes
+
+A line of prose earns its place only by carrying what the adjacent code
+does not already show. Every shape below restates something the reader
+already has — the code, the signature, another copy, the error message,
+the history — and goes ② even when every word is accurate:
+
+- **Code narration** — the comment translates the next line into prose
+  (`# set count to zero` over `count = 0`, `# loop over users` over the
+  for statement). The test is not "verbatim": any phrasing the reader
+  can re-derive from the line itself in seconds is narration. Delete.
+- **Signature restatement** — `Args/Returns` entries that mirror the
+  parameter name, type annotation, or return type (`x (int): the x
+  value`). Delete the mirrors; keep only non-obvious semantics — units,
+  bounds, side effects, failure modes, invariants the type cannot
+  express.
+- **Duplication across levels** — the same mechanism explained at
+  module, class, function, and inline level. One mechanism gets **one
+  canonical location**: normally the definition site's docstring; a
+  module docstring only for module-wide contracts; call sites make do
+  with the function name or a one-line pointer. Keep the most
+  authoritative copy, delete the rest — copies rot differently and the
+  reader cannot tell which one is live.
+- **Assert/raise preamble** — prose in front of the line that already
+  enforces the constraint (`# make sure n is positive` over
+  `assert n > 0`): the executable form cannot rot, the prose copy does.
+  Delete the preamble; the reverse move is unchanged — a real
+  restriction with no assert gets an assert, not a comment.
+- **Experiment souvenirs** — values observed during one run: GPU count,
+  rank, loss, tensor shapes, memory, wall time, config values,
+  "reported failure". Delete the observation; keep the generalized
+  failure mechanism it pointed at ("wider group → mismatched vocab
+  shards all-reduce" stays; "failed on 8 GPUs, TP=2, loss 3.2" goes).
+  Same rule as the counter-examples of the example keep rule below.
+- **Process/history narration** — prototype, future implementation,
+  added during review, date stamps, skill/session references,
+  plan/iteration/exp citations. The development process lives in git
+  blame and the commit body → delete (license headers and
+  live-obligation dates stay, as before).
+- **Table-of-contents docstrings** — a module docstring enumerating the
+  file's functions, classes, or steps. The symbol table and the IDE are
+  the TOC; the prose copy drifts on the first refactor → delete. The
+  module keeps its one-line purpose statement; a reading-order
+  walkthrough survives only where the order is genuinely non-linear
+  (rare — when in doubt, delete).
+- **Maintenance imperatives** — "when adding a method later, forward it
+  here too", "remember to update this list". Ritual instructions to
+  future maintainers delete; a real obligation is expressed as a stable
+  invariant or an automated check (assert/test/lint), which cannot be
+  forgotten. Boundary against kept provenance: a named obligation
+  between two concrete artifacts (vendored "sync on update", a verified
+  "must stay in sync with a/b.py") stays ④ — the ban targets
+  open-ended evolution rituals, not named sync obligations.
+- **Dead or background cross-references** — as the references section
+  below already rules: targets that moved or vanished (always), or
+  background-reading asides that constrain nothing here → delete.
+
+Bare alternative defenses ("why not X" with no in-code consequence) are
+the core rule above and need no separate listing.
+
+## The compress rules (tier ③ targets)
+
+When the content is real but the prose is fat, ③ compress — to these
+shapes:
+
+- **Public API docstrings**: one purpose sentence first, then only the
+  non-obvious parameter semantics (units, bounds, side effects, failure
+  modes). Mirrored signature details go (② above).
+- **Design notes**: constraint + consequence, nothing else. Backstory
+  and repeated derivations delete ("we first did Y, then discussed X"
+  is process narration); "wider group → elementwise all-reduce of
+  mismatched vocab shards" is the whole note.
+- **Algorithm examples**: exactly one macro example explaining the
+  generic mapping (keep rule below); further variants of the same
+  mapping delete.
+- **Provenance**: only sources with a real sync obligation stay.
+- **One canonical location per mechanism**: after the delete pass,
+  check the survivors — if the same explanation still lives twice, keep
+  the definition-site copy and reduce the other to a function name or a
+  one-line pointer.
 
 ## Examples: the two-condition keep rule
 
@@ -148,7 +231,10 @@ current and reads as noise, so both go by ②:
 - Skill/session references — "modified per x-grilling", "applied the
   code-review suggestion", "based on this morning's agent session" —
   delete. Future readers cannot resolve which conversation that was; the
-  process history lives in git blame and the commit body.
+  process history lives in git blame and the commit body. The same rule
+  covers process narration in every other shape — "prototype", "future
+  implementation", "added during review", plan/iteration/exp citations
+  (the delete taxonomy above).
 
 Exceptions (keep, ④):
 
@@ -269,6 +355,11 @@ subagents judge.
 >   cross-file asides, dangling pointers) → delete; ③ over-long prose →
 >   compress to the factual core; ④ non-obvious what/why, interface
 >   contracts, provenance, dividers, license headers → keep.
+> - Restatements (code narration, signature mirrors, level duplicates,
+>   assert/raise preambles, TOC docstrings, maintenance imperatives,
+>   experiment souvenirs) → delete; one mechanism keeps one canonical
+>   location; public docstrings compress to purpose + non-obvious
+>   semantics.
 > - Secrets: a hit in a comment → propose deleting the whole line; in a
 >   descriptive string → the carrying line, annotated "changes runtime
 >   output"; on a code line → report-only. Loopback/doc-range addresses
@@ -380,6 +471,9 @@ as dead-code: the report lists it, the user decides.
 
 - Do not "improve" tier-④ comments just to look busy — a good review changes
   little. Keeping ~90% unchanged is the healthy outcome.
+- Canonical-location default: the definition site wins; module docstrings
+  carry only module-wide contracts. Name the site you kept in the report
+  so the user can veto the choice.
 - The extraction list is the coverage floor: classifying every listed item
   is mandatory, and the soft sweep may add findings but never subtract
   items. An item you judge fine still belongs in the kept summary.
